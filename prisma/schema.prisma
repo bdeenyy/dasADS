@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  MASTER
+  MANAGER
+  RECRUITER
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users     User[]
+  customers Customer[]
+}
+
+model User {
+  id             String       @id @default(cuid())
+  email          String       @unique
+  hashedPassword String
+  name           String?
+  role           Role         @default(RECRUITER)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Customer {
+  id             String       @id @default(cuid())
+  name           String
+  inn            String?
+  contactPerson  String?
+  contactEmail   String?
+  contactPhone   String?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  vacancies      Vacancy[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, name])
+}
+
+model Vacancy {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  salaryMin   Int?
+  salaryMax   Int?
+  status      String   @default("DRAFT")
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

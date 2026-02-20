@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: dasads_user
+      POSTGRES_PASSWORD: dasads_password
+      POSTGRES_DB: dasads
+    ports:
+      - '5432:5432'
+    volumes:
+      - dasads_pgdata:/var/lib/postgresql/data
+
+volumes:
+  dasads_pgdata:
