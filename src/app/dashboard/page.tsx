@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
+import Link from "next/link"
 
 export default async function DashboardPage() {
     const session = await auth()
@@ -22,12 +23,12 @@ export default async function DashboardPage() {
 
                 {session.user.role === 'MASTER' && (
                     <div className="mt-5">
-                        <button
-                            type="button"
-                            className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+                        <Link
+                            href="/dashboard/settings"
+                            className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 cursor-pointer"
                         >
-                            Manage Organization Settings
-                        </button>
+                            Управление настройками организации
+                        </Link>
                     </div>
                 )}
             </div>

@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
+import SignOutButton from "@/components/SignOutButton"
 
 export default async function DashboardLayout({
     children,
@@ -23,13 +24,26 @@ export default async function DashboardLayout({
                             </div>
                         </div>
                         <div className="flex items-center space-x-4">
-                            <span className="text-sm text-gray-700">
+                            <span className="text-sm text-gray-700 hidden sm:inline-block">
                                 {session.user.name} ({session.user.role})
                             </span>
                             <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-medium text-indigo-800">
                                 {session.user.organizationName}
                             </span>
+                            <SignOutButton />
                         </div>
+                    </div>
+
+                    <div className="flex h-12 items-center space-x-8 text-sm font-medium border-t border-gray-200">
+                        <a href="/dashboard" className="text-gray-900 hover:text-indigo-600">Главная</a>
+                        <a href="/dashboard/customers" className="text-gray-900 hover:text-indigo-600">Заказчики</a>
+                        <a href="/dashboard/vacancies" className="text-gray-900 hover:text-indigo-600">Вакансии</a>
+                        {session.user.role === 'MASTER' && (
+                            <>
+                                <a href="/dashboard/users" className="text-gray-900 hover:text-indigo-600">Сотрудники</a>
+                                <a href="/dashboard/settings" className="text-gray-900 hover:text-indigo-600">Настройки</a>
+                            </>
+                        )}
                     </div>
                 </div>
             </nav>
