@@ -166,6 +166,94 @@ export default function SettingsPage() {
                     </button>
                 </div>
             </form>
+
+            {/* Password Change Section */}
+            <PasswordChangeForm />
         </div>
+    )
+}
+
+function PasswordChangeForm() {
+    const [currentPassword, setCurrentPassword] = useState("")
+    const [newPassword, setNewPassword] = useState("")
+    const [confirmPassword, setConfirmPassword] = useState("")
+    const [saving, setSaving] = useState(false)
+    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string }>({ type: 'error', text: '' })
+
+    const handleChangePassword = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setMessage({ type: 'error', text: '' })
+
+        if (newPassword !== confirmPassword) {
+            setMessage({ type: 'error', text: 'Пароли не совпадают' })
+            return
+        }
+
+        if (newPassword.length < 6) {
+            setMessage({ type: 'error', text: 'Новый пароль должен быть не менее 6 символов' })
+            return
+        }
+
+        setSaving(true)
+        try {
+            const res = await fetch("/api/users/password", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ currentPassword, newPassword })
+            })
+
+            if (!res.ok) {
+                const text = await res.text()
+                throw new Error(text)
+            }
+
+            setCurrentPassword("")
+            setNewPassword("")
+            setConfirmPassword("")
+            setMessage({ type: 'success', text: 'Пароль успешно изменён' })
+        } catch (err: unknown) {
+            if (err instanceof Error) setMessage({ type: 'error', text: err.message })
+            else setMessage({ type: 'error', text: String(err) })
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    return (
+        <form onSubmit={handleChangePassword} className="mt-8 bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+            <div className="px-4 py-6 sm:p-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Смена пароля</h3>
+                <div className="grid max-w-md grid-cols-1 gap-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Текущий пароль</label>
+                        <input type="password" required value={currentPassword} onChange={e => setCurrentPassword(e.target.value)}
+                            className="mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm px-3" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Новый пароль</label>
+                        <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Минимум 6 символов"
+                            className="mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm px-3" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Подтверждение пароля</label>
+                        <input type="password" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+                            className="mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm px-3" />
+                    </div>
+                </div>
+            </div>
+
+            {message.text && (
+                <div className={`px-4 py-3 text-sm border-t ${message.type === 'success' ? 'bg-green-50 text-green-800 border-green-200' : 'bg-red-50 text-red-800 border-red-200'}`}>
+                    {message.text}
+                </div>
+            )}
+
+            <div className="flex items-center justify-end border-t border-gray-900/10 px-4 py-4 sm:px-8">
+                <button type="submit" disabled={saving}
+                    className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-50">
+                    {saving ? "Сохранение..." : "Сменить пароль"}
+                </button>
+            </div>
+        </form>
     )
 }

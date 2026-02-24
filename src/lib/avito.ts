@@ -1,10 +1,11 @@
+import prisma from "@/lib/prisma"
+
 export class AvitoAPI {
     private clientId: string;
     private clientSecret: string;
     private token: string | null = null;
     private tokenExpiresAt: number = 0;
 
-    // Test base URL, assuming sandbox or real base URL is provided later.
     private baseUrl: string = "https://api.avito.ru";
 
     constructor(clientId: string, clientSecret: string) {
@@ -48,13 +49,10 @@ export class AvitoAPI {
 
     /**
      * Publish a vacancy
-     * Uses the /job/v2/vacancies endpoint based on Avito documentation
-     * Returns the created/updated vacancy info
      */
     async publishVacancy(vacancyData: unknown): Promise<unknown> {
         const token = await this.authenticate();
 
-        // POST to create a new vacancy
         const response = await fetch(`${this.baseUrl}/job/v2/vacancies`, {
             method: 'POST',
             headers: {
@@ -95,8 +93,19 @@ export class AvitoAPI {
     }
 }
 
-// Instantiate a default client relying on env variables
-export const avitoClient = new AvitoAPI(
-    process.env.AVITO_CLIENT_ID || '',
-    process.env.AVITO_CLIENT_SECRET || ''
-);
+/**
+ * Create an AvitoAPI client using organization-specific credentials from the database.
+ * This ensures multi-tenant isolation — each org uses its own Avito API keys.
+ */
+export async function createAvitoClient(organizationId: string): Promise<AvitoAPI> {
+    const org = await prisma.organization.findUnique({
+        where: { id: organizationId },
+        select: { avitoClientId: true, avitoClientSecret: true }
+    })
+
+    if (!org?.avitoClientId || !org?.avitoClientSecret) {
+        throw new Error("Avito API credentials are not configured for this organization. Please set them in Settings.")
+    }
+
+    return new AvitoAPI(org.avitoClientId, org.avitoClientSecret)
+}

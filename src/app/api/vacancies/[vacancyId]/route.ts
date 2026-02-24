@@ -4,6 +4,49 @@ import { canEditVacancy } from "@/lib/rbac"
 import { Role } from "@prisma/client"
 import { NextResponse } from "next/server"
 
+export async function GET(
+    req: Request,
+    { params }: { params: Promise<{ vacancyId: string }> }
+) {
+    const session = await auth()
+    if (!session?.user) {
+        return new NextResponse("Unauthorized", { status: 401 })
+    }
+
+    try {
+        const { vacancyId } = await params
+
+        const vacancy = await prisma.vacancy.findUnique({
+            where: { id: vacancyId },
+            include: {
+                customer: true,
+                owner: {
+                    select: { name: true, email: true }
+                },
+                applications: {
+                    include: {
+                        candidate: true
+                    }
+                }
+            }
+        })
+
+        if (!vacancy || vacancy.customer.organizationId !== session.user.organizationId) {
+            return new NextResponse("Not Found", { status: 404 })
+        }
+
+        // RECRUITER can only see their own vacancies
+        if (session.user.role === 'RECRUITER' && vacancy.ownerId !== session.user.id) {
+            return new NextResponse("Forbidden", { status: 403 })
+        }
+
+        return NextResponse.json(vacancy)
+    } catch (error) {
+        console.error("[VACANCY_GET]", error)
+        return new NextResponse("Internal Error", { status: 500 })
+    }
+}
+
 export async function PUT(
     req: Request,
     { params }: { params: Promise<{ vacancyId: string }> }
@@ -80,14 +123,27 @@ export async function PUT(
         // Try to publish/update on Avito if requested
         if (publishToAvito && avitoConfig) {
             try {
-                // The actual avito integration logic goes here
-                // For now we just mark the status if we hypothetically succeed
+                const { createAvitoClient } = await import("@/lib/avito")
+                const { mapVacancyToAvito } = await import("@/lib/avito-mapper")
+                const avitoClient = await createAvitoClient(session.user.organizationId)
+                const avitoPayload = mapVacancyToAvito(
+                    { id: vacancyId, title, description, salaryMin, salaryMax, experience, employmentType, city },
+                    avitoConfig as Record<string, string>
+                )
+                const avitoResponse = await avitoClient.publishVacancy(avitoPayload) as { id?: number }
                 await prisma.vacancy.update({
                     where: { id: vacancyId },
-                    data: { avitoStatus: "PUBLISHED" }
+                    data: {
+                        avitoId: avitoResponse.id || null,
+                        avitoStatus: "PUBLISHED"
+                    }
                 })
             } catch (err) {
                 console.error("Failed to update on Avito:", err)
+                await prisma.vacancy.update({
+                    where: { id: vacancyId },
+                    data: { avitoStatus: "ERROR" }
+                })
             }
         }
 

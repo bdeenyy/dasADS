@@ -69,10 +69,9 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
                 }
 
                 if (!isNew) {
-                    const res = await fetch(`/api/vacancies`)
+                    const res = await fetch(`/api/vacancies/${vacancyId}`)
                     if (res.ok) {
-                        const data = await res.json()
-                        const current = data.find((v: { id: string, [key: string]: unknown }) => v.id === vacancyId)
+                        const current = await res.json()
                         if (current) {
                             setFormData({
                                 title: current.title || "",

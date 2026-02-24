@@ -59,6 +59,11 @@ export async function DELETE(
         return new NextResponse("Unauthorized", { status: 401 })
     }
 
+    // Only MASTER and MANAGER can delete customers
+    if (session.user.role === 'RECRUITER') {
+        return new NextResponse("Forbidden - Recruiters cannot delete customers", { status: 403 })
+    }
+
     try {
         const { customerId } = await params;
 

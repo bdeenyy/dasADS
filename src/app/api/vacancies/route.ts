@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth"
 import { NextResponse } from "next/server"
 import { Prisma } from "@prisma/client"
 
-import { avitoClient } from "@/lib/avito"
+import { createAvitoClient } from "@/lib/avito"
 
 export async function GET() {
     const session = await auth()
@@ -94,20 +94,18 @@ export async function POST(req: Request) {
         // Try to publish to Avito if requested
         if (publishToAvito && avitoConfig) {
             try {
-                // Here we would map our data to the Avito 'VacancyCreate' format
-                // For now, we assume avitoConfig already contains the proper mapped fields or we merge them
-                const avitoPayload = {
-                    title,
-                    description,
-                    ...avitoConfig
-                }
+                const { mapVacancyToAvito } = await import("@/lib/avito-mapper")
+                const avitoClient = await createAvitoClient(session.user.organizationId)
+                const avitoPayload = mapVacancyToAvito(
+                    { id: 'new', title, description, salaryMin, salaryMax, experience, employmentType, city },
+                    avitoConfig as Record<string, string>
+                )
                 const avitoResponse = await avitoClient.publishVacancy(avitoPayload) as { id?: number };
                 data.avitoId = avitoResponse.id || null
                 data.avitoStatus = "PUBLISHED"
             } catch (err: unknown) {
                 console.error("Failed to publish to Avito:", err)
                 data.avitoStatus = "ERROR"
-                // Store the error in config or log it
             }
         }
 

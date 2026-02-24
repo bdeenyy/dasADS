@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Search, UserCircle2, Mail, Phone, CalendarDays } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 export default function CandidatesPage() {
 
@@ -10,6 +11,8 @@ export default function CandidatesPage() {
     const [candidates, setCandidates] = useState<CandidateData[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
+    const [searchQuery, setSearchQuery] = useState("")
+    const router = useRouter()
 
     useEffect(() => {
         fetchCandidates()
@@ -31,7 +34,26 @@ export default function CandidatesPage() {
         }
     }
 
-    if (loading) return <div className="p-8 text-gray-500">Загрузка кандидатов...</div>
+    // Client-side search filter
+    const filteredCandidates = candidates.filter(candidate => {
+        if (!searchQuery.trim()) return true
+        const query = searchQuery.toLowerCase()
+        return (
+            candidate.firstName?.toLowerCase().includes(query) ||
+            candidate.lastName?.toLowerCase().includes(query) ||
+            candidate.email?.toLowerCase().includes(query) ||
+            candidate.phone?.includes(query)
+        )
+    })
+
+    if (loading) return (
+        <div className="space-y-6">
+            <div className="h-8 w-48 bg-slate-200 rounded animate-pulse" />
+            <div className="premium-card p-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto" />
+            </div>
+        </div>
+    )
 
     return (
         <div className="space-y-6">
@@ -50,8 +72,10 @@ export default function CandidatesPage() {
                         <input
                             type="text"
                             name="search"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                             className="block w-full rounded-lg border-0 py-2 pl-10 text-slate-900 ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 transition-all"
-                            placeholder="Поиск по базе..."
+                            placeholder="Поиск по имени, email, телефону..."
                         />
                     </div>
                 </div>
@@ -79,8 +103,12 @@ export default function CandidatesPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 bg-white">
-                            {candidates.map((candidate) => (
-                                <tr key={candidate.id} className="hover:bg-slate-50/50 transition-colors group">
+                            {filteredCandidates.map((candidate) => (
+                                <tr
+                                    key={candidate.id}
+                                    className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
+                                    onClick={() => router.push(`/dashboard/candidates/${candidate.id}`)}
+                                >
                                     <td className="whitespace-nowrap px-6 py-5">
                                         <div className="flex items-center gap-4">
                                             <div className="h-10 w-10 flex-shrink-0 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-100 transition-colors">
@@ -125,11 +153,11 @@ export default function CandidatesPage() {
                                     </td>
                                 </tr>
                             ))}
-                            {candidates.length === 0 && (
+                            {filteredCandidates.length === 0 && (
                                 <tr>
                                     <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-500">
                                         <UserCircle2 className="mx-auto h-12 w-12 text-slate-300 mb-3" />
-                                        <p>База кандидатов пуста.</p>
+                                        <p>{searchQuery ? "Ничего не найдено по вашему запросу." : "База кандидатов пуста."}</p>
                                     </td>
                                 </tr>
                             )}
