@@ -3,10 +3,10 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { signIn } from "next-auth/react"
 
 export default function RegisterPage() {
     const router = useRouter()
-    const [name, setName] = useState("")
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
@@ -36,7 +36,6 @@ export default function RegisterPage() {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    name,
                     email,
                     password,
                 }),
@@ -49,8 +48,21 @@ export default function RegisterPage() {
                 return
             }
 
-            // Successfully registered, redirect to login
-            router.push("/login?registered=true")
+            // Successfully registered, auto login
+            const signInRes = await signIn("credentials", {
+                email,
+                password,
+                redirect: false,
+            })
+
+            if (signInRes?.error) {
+                // If login fails for some reason, redirect to login page
+                router.push("/login?registered=true")
+            } else {
+                // Login successful, redirect to dashboard
+                router.push("/dashboard")
+                router.refresh()
+            }
         } catch (error) {
             console.error(error)
             setError("An error occurred during registration")
@@ -71,23 +83,7 @@ export default function RegisterPage() {
                 </div>
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                     <div className="space-y-4 rounded-md shadow-sm">
-                        <div>
-                            <label htmlFor="name" className="sr-only">
-                                Full Name
-                            </label>
-                            <input
-                                id="name"
-                                name="name"
-                                type="text"
-                                autoComplete="name"
-                                required
-                                className="relative block w-full rounded-t-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
-                                placeholder="Full Name"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                disabled={isLoading}
-                            />
-                        </div>
+                        {" "}
                         <div>
                             <label htmlFor="email-address" className="sr-only">
                                 Email address

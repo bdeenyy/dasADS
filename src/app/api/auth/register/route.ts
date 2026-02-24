@@ -7,7 +7,7 @@ export async function POST(req: Request) {
         const body = await req.json()
         const { name, email, password } = body
 
-        if (!name || !email || !password) {
+        if (!email || !password) {
             return new NextResponse("Missing required fields", { status: 400 })
         }
 
@@ -22,8 +22,9 @@ export async function POST(req: Request) {
 
         const hashedPassword = await bcrypt.hash(password, 10)
 
-        // Generate placeholder organization name
-        const orgName = `Личный кабинет - ${name.substring(0, 20)}`
+        // Generate placeholder organization name based on email if name is not provided
+        const identifier = name ? name.substring(0, 20) : email.split('@')[0].substring(0, 20)
+        const orgName = `Личный кабинет - ${identifier}`
 
         // Use Prisma transaction to create organization and master user reliably
         const newUser = await prisma.$transaction(async (tx) => {
