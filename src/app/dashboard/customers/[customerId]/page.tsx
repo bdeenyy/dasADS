@@ -26,7 +26,7 @@ export default function CustomerForm({ params }: { params: Promise<{ customerId:
                     const res = await fetch(`/api/customers`)
                     if (res.ok) {
                         const data = await res.json()
-                        const current = data.find((c: any) => c.id === customerId)
+                        const current = data.find((c: { id: string }) => c.id === customerId)
                         if (current) {
                             setFormData({
                                 name: current.name || "",
@@ -39,7 +39,7 @@ export default function CustomerForm({ params }: { params: Promise<{ customerId:
                             setError("Customer not found")
                         }
                     }
-                } catch (err) {
+                } catch {
                     setError("Failed to load customer data")
                 } finally {
                     setLoading(false)
@@ -72,8 +72,12 @@ export default function CustomerForm({ params }: { params: Promise<{ customerId:
 
             router.push("/dashboard/customers")
             router.refresh()
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message)
+            } else {
+                setError(String(err))
+            }
             setSaving(false)
         }
     }
@@ -91,8 +95,12 @@ export default function CustomerForm({ params }: { params: Promise<{ customerId:
 
             router.push("/dashboard/customers")
             router.refresh()
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message)
+            } else {
+                setError(String(err))
+            }
             setSaving(false)
         }
     }

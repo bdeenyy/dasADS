@@ -6,8 +6,8 @@ import bcrypt from "bcryptjs"
 export async function GET() {
     const session = await auth()
 
-    // Only MASTER can view all users
-    if (!session?.user || session.user.role !== 'MASTER') {
+    // MASTER and MANAGER can view users
+    if (!session?.user || session.user.role === 'RECRUITER') {
         return new NextResponse("Unauthorized", { status: 401 })
     }
 

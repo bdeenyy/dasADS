@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { Plus, BriefcaseBusiness, Building2, Banknote } from "lucide-react"
 
 type Vacancy = {
     id: string
@@ -38,11 +39,11 @@ export default function VacanciesPage() {
     }, [])
 
     return (
-        <div className="px-4 sm:px-6 lg:px-8">
-            <div className="sm:flex sm:items-center">
-                <div className="sm:flex-auto">
-                    <h1 className="text-base font-semibold leading-6 text-gray-900">Вакансии</h1>
-                    <p className="mt-2 text-sm text-gray-700">
+        <div className="space-y-6">
+            <div className="sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">Вакансии</h1>
+                    <p className="mt-1 text-sm text-slate-500">
                         Список всех открытых и закрытых вакансий вашей организации.
                     </p>
                 </div>
@@ -50,87 +51,113 @@ export default function VacanciesPage() {
                     <button
                         type="button"
                         onClick={() => router.push("/dashboard/vacancies/new")}
-                        className="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                     >
+                        <Plus className="w-4 h-4" />
                         Создать вакансию
                     </button>
                 </div>
             </div>
-            <div className="mt-8 flow-root">
-                <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                    <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                        <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-                            <table className="min-w-full divide-y divide-gray-300">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
-                                            Название
-                                        </th>
-                                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                            Заказчик
-                                        </th>
-                                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                            Зарплата
-                                        </th>
-                                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                            Статус
-                                        </th>
-                                        <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                                            <span className="sr-only">Действия</span>
-                                        </th>
+
+            <div className="premium-card overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-200">
+                        <thead className="bg-slate-50 border-b border-slate-200 uppercase text-xs font-semibold text-slate-500 tracking-wider">
+                            <tr>
+                                <th scope="col" className="px-6 py-4 text-left">
+                                    Название
+                                </th>
+                                <th scope="col" className="px-6 py-4 text-left">
+                                    Заказчик
+                                </th>
+                                <th scope="col" className="px-6 py-4 text-left">
+                                    Условия (ЗП)
+                                </th>
+                                <th scope="col" className="px-6 py-4 text-left">
+                                    Статус
+                                </th>
+                                <th scope="col" className="relative px-6 py-4">
+                                    <span className="sr-only">Действия</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={5} className="py-12 text-center text-sm text-slate-500">
+                                        <div className="flex flex-col items-center justify-center">
+                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4"></div>
+                                            Загрузка вакансий...
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : vacancies.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-500">
+                                        <BriefcaseBusiness className="mx-auto h-12 w-12 text-slate-300 mb-3" />
+                                        <p>У вас пока нет ни одной вакансии.</p>
+                                    </td>
+                                </tr>
+                            ) : (
+                                vacancies.map((vacancy) => (
+                                    <tr key={vacancy.id} className="hover:bg-slate-50/50 transition-colors group">
+                                        <td className="whitespace-nowrap px-6 py-5">
+                                            <div className="flex items-center gap-4">
+                                                <div className="h-10 w-10 flex-shrink-0 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-100 transition-colors">
+                                                    <BriefcaseBusiness className="h-5 w-5" />
+                                                </div>
+                                                <div>
+                                                    <div className="font-medium text-slate-900 text-sm">
+                                                        {vacancy.title}
+                                                    </div>
+                                                    <div className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                                                        ID: {vacancy.id.split('-')[0]}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="whitespace-nowrap px-6 py-5">
+                                            <div className="flex items-center gap-2 text-sm text-slate-600">
+                                                <Building2 className="w-4 h-4 text-slate-400" />
+                                                {vacancy.customer?.name || "Внутренняя"}
+                                            </div>
+                                        </td>
+                                        <td className="whitespace-nowrap px-6 py-5">
+                                            <div className="flex items-center gap-2 text-sm text-slate-600 font-medium">
+                                                <Banknote className="w-4 h-4 text-green-500" />
+                                                {vacancy.salaryMin && vacancy.salaryMax
+                                                    ? `от ${vacancy.salaryMin} до ${vacancy.salaryMax} ₽`
+                                                    : vacancy.salaryMin
+                                                        ? `от ${vacancy.salaryMin} ₽`
+                                                        : vacancy.salaryMax
+                                                            ? `до ${vacancy.salaryMax} ₽`
+                                                            : "По договоренности"}
+                                            </div>
+                                        </td>
+                                        <td className="whitespace-nowrap px-6 py-5">
+                                            <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium border
+                                                ${vacancy.status === 'ACTIVE' ? 'bg-green-50 text-green-700 border-green-200' :
+                                                    vacancy.status === 'DRAFT' ? 'bg-slate-50 text-slate-600 border-slate-200' :
+                                                        vacancy.status === 'CLOSED' ? 'bg-red-50 text-red-700 border-red-200' :
+                                                            'bg-blue-50 text-blue-700 border-blue-200'
+                                                }`}>
+                                                <span className={`h-1.5 w-1.5 rounded-full ${vacancy.status === 'ACTIVE' ? 'bg-green-500' : vacancy.status === 'DRAFT' ? 'bg-slate-400' : vacancy.status === 'CLOSED' ? 'bg-red-500' : 'bg-blue-500'}`}></span>
+                                                {vacancy.status}
+                                            </span>
+                                        </td>
+                                        <td className="whitespace-nowrap px-6 py-5 text-right text-sm font-medium">
+                                            <button
+                                                onClick={() => router.push(`/dashboard/vacancies/${vacancy.id}`)}
+                                                className="text-indigo-600 hover:text-indigo-900 bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                            >
+                                                Настроить
+                                            </button>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200 bg-white">
-                                    {loading ? (
-                                        <tr>
-                                            <td colSpan={5} className="py-4 text-center text-sm text-gray-500">Загрузка...</td>
-                                        </tr>
-                                    ) : vacancies.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={5} className="py-4 text-center text-sm text-gray-500">Вакансии не найдены</td>
-                                        </tr>
-                                    ) : (
-                                        vacancies.map((vacancy) => (
-                                            <tr key={vacancy.id}>
-                                                <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                                                    {vacancy.title}
-                                                </td>
-                                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                                    {vacancy.customer?.name || "-"}
-                                                </td>
-                                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                                    {vacancy.salaryMin && vacancy.salaryMax
-                                                        ? `от ${vacancy.salaryMin} до ${vacancy.salaryMax}`
-                                                        : vacancy.salaryMin
-                                                            ? `от ${vacancy.salaryMin}`
-                                                            : vacancy.salaryMax
-                                                                ? `до ${vacancy.salaryMax}`
-                                                                : "Не указана"}
-                                                </td>
-                                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                                    <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${vacancy.status === 'ACTIVE' ? 'bg-green-50 text-green-700 ring-green-600/20' :
-                                                            vacancy.status === 'DRAFT' ? 'bg-gray-50 text-gray-600 ring-gray-500/10' :
-                                                                vacancy.status === 'CLOSED' ? 'bg-red-50 text-red-700 ring-red-600/10' :
-                                                                    'bg-blue-50 text-blue-700 ring-blue-700/10'
-                                                        }`}>
-                                                        {vacancy.status}
-                                                    </span>
-                                                </td>
-                                                <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                                                    <button
-                                                        onClick={() => router.push(`/dashboard/vacancies/${vacancy.id}`)}
-                                                        className="text-indigo-600 hover:text-indigo-900 mr-4"
-                                                    >
-                                                        Изменить
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

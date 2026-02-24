@@ -14,7 +14,7 @@ export async function GET(req: Request) {
     const customerId = searchParams.get("customerId")
 
     try {
-        const whereClause: any = {
+        const whereClause: Record<string, unknown> = {
             // Activities should be inherently bound to the org via user or target
             user: {
                 organizationId: session.user.organizationId

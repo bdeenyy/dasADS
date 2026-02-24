@@ -1,0 +1,52 @@
+# Dockhost Deployment Configuration
+# https://docs.dockhost.ru/manual
+
+volumes:
+  dasads_pgdata:
+    size: 2GiB
+    enable: true
+    sync:
+      always: false
+
+containers:
+  db:
+    image: postgres:15-alpine
+    replicas: 1
+    resources:
+      memory: 512MiB
+      cpu: 1
+      cpuFraction: 50
+    ports:
+      - 5432
+    variables:
+      POSTGRES_USER: dasads_user
+      POSTGRES_PASSWORD: dasads_password
+      POSTGRES_DB: dasads
+    volumes:
+      - name: dasads_pgdata
+        mountPath: /var/lib/postgresql/data
+    state: present
+
+  web:
+    # IMPORTANT:
+    # If using Dockhost "Push-to-Deploy", you can link your Git repository in the Dockhost Web UI,
+    # and Dockhost will build the image from your Dockerfile automatically.
+    # If you are pushing a pre-built image to a registry, specify your image path here:
+    image: your-registry-url-or-dockerhub-username/dasads:latest
+    replicas: 1
+    resources:
+      memory: 512MiB
+      cpu: 1
+      cpuFraction: 80
+    ports:
+      - 3000
+    variables:
+      # Use the internal Dockhost DNS (container name 'db')
+      DATABASE_URL: postgresql://dasads_user:dasads_password@db:5432/dasads
+      # Add NEXTAUTH_SECRET and NEXTAUTH_URL securely in the Dockhost interface or as environment variables.
+    state: present
+
+network:
+  domains:
+    # Dockhost will automatically create a domain (e.g. dasads-web.dockhost.ru)
+    dasads-web: ~

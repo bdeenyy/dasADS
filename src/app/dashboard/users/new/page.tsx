@@ -43,8 +43,12 @@ export default function NewUserForm() {
 
             router.push("/dashboard/users")
             router.refresh()
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message)
+            } else {
+                setError(String(err))
+            }
             setSaving(false)
         }
     }

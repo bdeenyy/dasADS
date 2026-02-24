@@ -12,7 +12,7 @@ export async function GET(req: Request) {
     const vacancyId = searchParams.get("vacancyId")
 
     try {
-        const whereClause: any = {
+        const whereClause: Record<string, unknown> = {
             organizationId: session.user.organizationId,
         }
 

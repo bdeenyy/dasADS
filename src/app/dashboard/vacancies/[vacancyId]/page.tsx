@@ -12,7 +12,9 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
     // Tab state
     const [activeTab, setActiveTab] = useState<"DETAILS" | "CANDIDATES">("DETAILS")
 
-    const [customers, setCustomers] = useState<any[]>([])
+    const [customers, setCustomers] = useState<{ id: string, name: string }[]>([])
+    const [users, setUsers] = useState<{ id: string, name: string, role: string }[]>([])
+    const [currentUserRole, setCurrentUserRole] = useState<string>("RECRUITER")
 
     const [formData, setFormData] = useState({
         title: "",
@@ -26,7 +28,13 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
         skills: "",  // Stored as comma separated in form, array in DB
         status: "DRAFT",
         customerId: "",
-        avitoConfig: "", // JSON string for config
+        ownerId: "",
+        avitoAddress: "",
+        avitoContactMethod: "В сообщениях",
+        avitoImageUrl: "",
+        avitoJobType: "Полный день",
+        avitoManagerName: "",
+        avitoContactPhone: "",
         publishToAvito: false,
     })
     const [loading, setLoading] = useState(true)
@@ -46,11 +54,25 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
                     }
                 }
 
+                // Try fetching users (will fail with 401 if role is RECRUITER, we just ignore that)
+                try {
+                    const usersRes = await fetch('/api/users')
+                    if (usersRes.ok) {
+                        const usersData = await usersRes.json()
+                        setUsers(usersData)
+                        setCurrentUserRole("MASTER_OR_MANAGER")
+                    } else {
+                        setCurrentUserRole("RECRUITER")
+                    }
+                } catch {
+                    setCurrentUserRole("RECRUITER")
+                }
+
                 if (!isNew) {
                     const res = await fetch(`/api/vacancies`)
                     if (res.ok) {
                         const data = await res.json()
-                        const current = data.find((v: any) => v.id === vacancyId)
+                        const current = data.find((v: { id: string, [key: string]: unknown }) => v.id === vacancyId)
                         if (current) {
                             setFormData({
                                 title: current.title || "",
@@ -64,7 +86,13 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
                                 skills: current.skills?.join(", ") || "",
                                 status: current.status || "DRAFT",
                                 customerId: current.customerId || "",
-                                avitoConfig: current.avitoConfig ? JSON.stringify(current.avitoConfig, null, 2) : "",
+                                ownerId: current.ownerId || "",
+                                avitoAddress: current.avitoConfig?.address || "",
+                                avitoContactMethod: current.avitoConfig?.contactMethod || "В сообщениях",
+                                avitoImageUrl: current.avitoConfig?.imageUrl || "",
+                                avitoJobType: current.avitoConfig?.jobType || "Полный день",
+                                avitoManagerName: current.avitoConfig?.managerName || "",
+                                avitoContactPhone: current.avitoConfig?.contactPhone || "",
                                 publishToAvito: false, // Don't auto-publish existing if un-clicking
                             })
                         } else {
@@ -72,7 +100,7 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
                         }
                     }
                 }
-            } catch (err) {
+            } catch {
                 setError("Failed to load data")
             } finally {
                 setLoading(false)
@@ -101,13 +129,13 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
                 : []
 
             // Process Avito Config
-            let parsedAvitoConfig = null
-            if (formData.avitoConfig) {
-                try {
-                    parsedAvitoConfig = JSON.parse(formData.avitoConfig)
-                } catch (e) {
-                    throw new Error("Неверный формат JSON в конфигурации Avito")
-                }
+            const parsedAvitoConfig = {
+                address: formData.avitoAddress,
+                contactMethod: formData.avitoContactMethod,
+                imageUrl: formData.avitoImageUrl,
+                jobType: formData.avitoJobType,
+                managerName: formData.avitoManagerName,
+                contactPhone: formData.avitoContactPhone,
             }
 
             const payload = {
@@ -125,13 +153,16 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
             })
 
             if (!res.ok) {
-                throw new Error("Failed to save vacancy")
+                const text = await res.text()
+                throw new Error(text || "Failed to save vacancy")
             }
 
             router.push("/dashboard/vacancies")
             router.refresh()
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err: unknown) {
+            console.error(err)
+            if (err instanceof Error) setError(err.message)
+            else setError(String(err))
             setSaving(false)
         }
     }
@@ -149,8 +180,9 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
 
             router.push("/dashboard/vacancies")
             router.refresh()
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err: unknown) {
+            if (err instanceof Error) setError(err.message)
+            else setError(String(err))
             setSaving(false)
         }
     }
@@ -234,6 +266,29 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
                                     </select>
                                 </div>
                             </div>
+
+                            {currentUserRole !== "RECRUITER" && (
+                                <div className="sm:col-span-6">
+                                    <label htmlFor="ownerId" className="block text-sm font-medium leading-6 text-gray-900">
+                                        Ответственный Рекрутер
+                                    </label>
+                                    <div className="mt-2 text-xs text-gray-500 mb-2">Кому назначена данная вакансия для работы с откликами</div>
+                                    <div className="mt-2">
+                                        <select
+                                            id="ownerId"
+                                            name="ownerId"
+                                            value={formData.ownerId}
+                                            onChange={(e) => setFormData({ ...formData, ownerId: e.target.value })}
+                                            className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:max-w-xs sm:text-sm sm:leading-6 px-3"
+                                        >
+                                            <option value="">Назначить позже (Останется за вами)</option>
+                                            {users.map((u) => (
+                                                <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="sm:col-span-3">
                                 <label htmlFor="salaryMin" className="block text-sm font-medium leading-6 text-gray-900">
@@ -368,23 +423,101 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
                                     </div>
                                 </div>
 
-                                <div className="sm:col-span-6">
-                                    <label htmlFor="avitoConfig" className="block text-sm font-medium leading-6 text-gray-900 hover:cursor-pointer flex items-center justify-between">
-                                        Дополнительные параметры Авито (JSON формат)
-                                    </label>
-                                    <p className="text-xs text-gray-500 mb-2">Сюда можно вставить специфичные настройки по схеме Avito (например, address_details, citizenship_criteria, work_format и т.д.)</p>
-                                    <div className="mt-2">
-                                        <textarea
-                                            id="avitoConfig"
-                                            name="avitoConfig"
-                                            rows={6}
-                                            placeholder='{ "address_details": { "address": "Москва, ул. Пушкина" }, "salary_range": { "salary_min": 50000, "salary_type": "per_month" } }'
-                                            value={formData.avitoConfig}
-                                            onChange={(e) => setFormData({ ...formData, avitoConfig: e.target.value })}
-                                            className="font-mono text-xs block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:leading-6 px-3 bg-gray-50"
-                                        />
+                                {formData.publishToAvito && (
+                                    <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-6 pl-7">
+                                        <div className="sm:col-span-4">
+                                            <label htmlFor="avitoAddress" className="block text-sm font-medium leading-6 text-gray-900">
+                                                Полный адрес для Авито (город, улица)
+                                            </label>
+                                            <div className="mt-2 text-xs text-gray-500 mb-2">Например: Москва, улица Ленина, 50</div>
+                                            <input
+                                                type="text"
+                                                id="avitoAddress"
+                                                value={formData.avitoAddress}
+                                                onChange={(e) => setFormData({ ...formData, avitoAddress: e.target.value })}
+                                                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
+                                                placeholder="Адрес для соискателей..."
+                                            />
+                                        </div>
+                                        <div className="sm:col-span-2">
+                                            <label htmlFor="avitoContactMethod" className="block text-sm font-medium leading-6 text-gray-900">
+                                                Способ связи
+                                            </label>
+                                            <div className="mt-2 text-xs text-transparent select-none mb-2">.</div>
+                                            <select
+                                                id="avitoContactMethod"
+                                                value={formData.avitoContactMethod}
+                                                onChange={(e) => setFormData({ ...formData, avitoContactMethod: e.target.value })}
+                                                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
+                                            >
+                                                <option value="В сообщениях">Только сообщения</option>
+                                                <option value="По телефону">Только звонки</option>
+                                                <option value="По телефону и в сообщениях">Сообщения и звонки</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="sm:col-span-3">
+                                            <label htmlFor="avitoManagerName" className="block text-sm font-medium leading-6 text-gray-900">
+                                                Имя менеджера
+                                            </label>
+                                            <input
+                                                type="text"
+                                                id="avitoManagerName"
+                                                value={formData.avitoManagerName}
+                                                onChange={(e) => setFormData({ ...formData, avitoManagerName: e.target.value })}
+                                                className="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
+                                                placeholder="Например: Анастасия"
+                                            />
+                                        </div>
+                                        <div className="sm:col-span-3">
+                                            <label htmlFor="avitoContactPhone" className="block text-sm font-medium leading-6 text-gray-900">
+                                                Контактный телефон
+                                            </label>
+                                            <input
+                                                type="text"
+                                                id="avitoContactPhone"
+                                                value={formData.avitoContactPhone}
+                                                onChange={(e) => setFormData({ ...formData, avitoContactPhone: e.target.value })}
+                                                className="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
+                                                placeholder="Например: 79001234567"
+                                            />
+                                        </div>
+
+                                        <div className="sm:col-span-3">
+                                            <label htmlFor="avitoImageUrl" className="block text-sm font-medium leading-6 text-gray-900">
+                                                Ссылка на изображение (Обложка)
+                                            </label>
+                                            <input
+                                                type="url"
+                                                id="avitoImageUrl"
+                                                value={formData.avitoImageUrl}
+                                                onChange={(e) => setFormData({ ...formData, avitoImageUrl: e.target.value })}
+                                                className="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
+                                                placeholder="https://..."
+                                            />
+                                        </div>
+
+                                        <div className="sm:col-span-3">
+                                            <label htmlFor="avitoJobType" className="block text-sm font-medium leading-6 text-gray-900">
+                                                График работы (Авито)
+                                            </label>
+                                            <select
+                                                id="avitoJobType"
+                                                value={formData.avitoJobType}
+                                                onChange={(e) => setFormData({ ...formData, avitoJobType: e.target.value })}
+                                                className="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
+                                            >
+                                                <option value="Полный день">Полный день</option>
+                                                <option value="Сменный график">Сменный график</option>
+                                                <option value="Гибкий">Гибкий график</option>
+                                                <option value="Удаленная работа">Удаленная работа</option>
+                                                <option value="Вахтовый метод">Вахтовый метод</option>
+                                                <option value="Свободный график">Свободный график</option>
+                                            </select>
+                                        </div>
+
                                     </div>
-                                </div>
+                                )}
                             </div>
 
                             <div className="sm:col-span-6">

@@ -32,7 +32,7 @@ export default function SettingsPage() {
                         setMessage({ type: "error", text: "Failed to load settings" })
                     }
                 }
-            } catch (err) {
+            } catch {
                 setMessage({ type: "error", text: "Error loading data" })
             } finally {
                 setLoading(false)
@@ -59,8 +59,12 @@ export default function SettingsPage() {
 
             setMessage({ type: "success", text: "Настройки успешно сохранены!" })
             router.refresh()
-        } catch (err: any) {
-            setMessage({ type: "error", text: err.message })
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setMessage({ type: "error", text: err.message })
+            } else {
+                setMessage({ type: "error", text: String(err) })
+            }
         } finally {
             setSaving(false)
         }

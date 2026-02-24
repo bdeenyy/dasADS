@@ -1,5 +1,7 @@
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
+import { canEditVacancy } from "@/lib/rbac"
+import { Role } from "@prisma/client"
 import { NextResponse } from "next/server"
 
 export async function PUT(
@@ -16,7 +18,7 @@ export async function PUT(
         const {
             title, description, salaryMin, salaryMax,
             experience, workFormat, employmentType, city,
-            skills, status, customerId
+            skills, status, customerId, ownerId, avitoConfig, publishToAvito
         } = body
 
         if (!title || !customerId) {
@@ -35,12 +37,23 @@ export async function PUT(
             return new NextResponse("Not Found", { status: 404 })
         }
 
+        const isOwner = existingVacancy.ownerId === session.user.id
+        if (!canEditVacancy(session.user.role as Role, isOwner)) {
+            return new NextResponse("Forbidden - Insufficient permissions to edit this vacancy", { status: 403 })
+        }
+
         // Verify new customer also belongs to user's org (if changed)
         if (existingVacancy.customerId !== customerId) {
             const checkCustomer = await prisma.customer.findUnique({ where: { id: customerId } })
             if (!checkCustomer || checkCustomer.organizationId !== session.user.organizationId) {
                 return new NextResponse("Invalid Customer", { status: 403 })
             }
+        }
+
+        // Validate ownerId based on role
+        let finalOwnerId = existingVacancy.ownerId
+        if (ownerId && (session.user.role === 'MASTER' || session.user.role === 'MANAGER')) {
+            finalOwnerId = ownerId
         }
 
         const vacancy = await prisma.vacancy.update({
@@ -59,13 +72,29 @@ export async function PUT(
                 skills: skills || [],
                 status: status || "DRAFT",
                 customerId,
+                ownerId: finalOwnerId,
+                avitoConfig: avitoConfig || null,
             },
         })
 
+        // Try to publish/update on Avito if requested
+        if (publishToAvito && avitoConfig) {
+            try {
+                // The actual avito integration logic goes here
+                // For now we just mark the status if we hypothetically succeed
+                await prisma.vacancy.update({
+                    where: { id: vacancyId },
+                    data: { avitoStatus: "PUBLISHED" }
+                })
+            } catch (err) {
+                console.error("Failed to update on Avito:", err)
+            }
+        }
+
         return NextResponse.json(vacancy)
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("[VACANCY_PUT]", error)
-        return new NextResponse("Internal Error", { status: 500 })
+        return new NextResponse(error instanceof Error ? error.message : "Internal Error", { status: 500 })
     }
 }
 

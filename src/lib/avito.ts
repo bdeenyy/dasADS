@@ -51,7 +51,7 @@ export class AvitoAPI {
      * Uses the /job/v2/vacancies endpoint based on Avito documentation
      * Returns the created/updated vacancy info
      */
-    async publishVacancy(vacancyData: any): Promise<any> {
+    async publishVacancy(vacancyData: unknown): Promise<unknown> {
         const token = await this.authenticate();
 
         // POST to create a new vacancy
@@ -75,7 +75,7 @@ export class AvitoAPI {
     /**
      * Get applies for a specific vacancy
      */
-    async getApplies(vacancyId: number): Promise<any> {
+    async getApplies(vacancyId: number): Promise<unknown> {
         const token = await this.authenticate();
 
         const response = await fetch(`${this.baseUrl}/job/v1/vacancies/${vacancyId}/applies`, {

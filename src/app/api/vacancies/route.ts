@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { NextResponse } from "next/server"
+import { Prisma } from "@prisma/client"
 
 import { avitoClient } from "@/lib/avito"
 
@@ -11,12 +12,19 @@ export async function GET() {
     }
 
     try {
+        const queryWhere: Record<string, unknown> = {
+            customer: {
+                organizationId: session.user.organizationId,
+            }
+        }
+
+        // If RECRUITER, only show vacancies owned by them
+        if (session.user.role === 'RECRUITER') {
+            queryWhere.ownerId = session.user.id;
+        }
+
         const vacancies = await prisma.vacancy.findMany({
-            where: {
-                customer: {
-                    organizationId: session.user.organizationId,
-                }
-            },
+            where: queryWhere,
             include: {
                 customer: true,
                 owner: {
@@ -61,7 +69,13 @@ export async function POST(req: Request) {
             return new NextResponse("Invalid Customer", { status: 403 })
         }
 
-        const data: any = {
+        // Validate ownerId based on role
+        let finalOwnerId = session.user.id
+        if (ownerId && (session.user.role === 'MASTER' || session.user.role === 'MANAGER')) {
+            finalOwnerId = ownerId
+        }
+
+        const data: Prisma.VacancyUncheckedCreateInput = {
             title,
             description,
             salaryMin: salaryMin ? parseInt(salaryMin) : null,
@@ -73,7 +87,7 @@ export async function POST(req: Request) {
             skills: skills || [],
             status: status || "DRAFT",
             customerId,
-            ownerId: ownerId || session.user.id,
+            ownerId: finalOwnerId,
             avitoConfig: avitoConfig || null
         }
 
@@ -87,10 +101,10 @@ export async function POST(req: Request) {
                     description,
                     ...avitoConfig
                 }
-                const avitoResponse = await avitoClient.publishVacancy(avitoPayload)
+                const avitoResponse = await avitoClient.publishVacancy(avitoPayload) as { id?: number };
                 data.avitoId = avitoResponse.id || null
                 data.avitoStatus = "PUBLISHED"
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error("Failed to publish to Avito:", err)
                 data.avitoStatus = "ERROR"
                 // Store the error in config or log it
@@ -102,8 +116,8 @@ export async function POST(req: Request) {
         })
 
         return NextResponse.json(vacancy)
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("[VACANCIES_POST]", error)
-        return new NextResponse("Internal Error", { status: 500 })
+        return new NextResponse(error instanceof Error ? error.message : "Internal Error", { status: 500 })
     }
 }
