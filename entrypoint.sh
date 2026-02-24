@@ -1,7 +1,7 @@
 #!/bin/sh
-# Run Prisma migrations
-echo "Running Prisma migrations..."
-npx --yes prisma@5.22.0 migrate deploy
+# Run Prisma db push to sync schema directly
+echo "Running Prisma db push..."
+npx --yes prisma@5.22.0 db push --accept-data-loss
 
 
 # Start the Next.js application
