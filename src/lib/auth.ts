@@ -48,6 +48,7 @@ export const authOptions: NextAuthConfig = {
     session: {
         strategy: "jwt",
     },
+    trustHost: true,
     callbacks: {
         async jwt({ token, user }) {
             if (user) {
