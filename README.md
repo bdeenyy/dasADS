@@ -1,3 +1,7 @@
+# dasADS
+
+[![Node.js CI](https://github.com/bdeenyy/dasADS/actions/workflows/ci.yml/badge.svg)](https://github.com/bdeenyy/dasADS/actions/workflows/ci.yml)
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
