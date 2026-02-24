@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { Activity as ActivityIcon, User, Briefcase, Building2, CalendarDays } from "lucide-react"
+import { Skeleton } from "@/components/Skeleton"
+import { Pagination } from "@/components/Pagination"
 
 type ActivityData = {
     id: string
@@ -16,23 +18,28 @@ type ActivityData = {
 export default function ActivityPage() {
     const [activities, setActivities] = useState<ActivityData[]>([])
     const [loading, setLoading] = useState(true)
+    const [currentPage, setCurrentPage] = useState(1)
+    const [totalPages, setTotalPages] = useState(1)
 
     useEffect(() => {
-        const fetchActivities = async () => {
-            try {
-                const res = await fetch("/api/activities")
-                if (res.ok) {
-                    const data = await res.json()
-                    setActivities(data)
-                }
-            } catch (error) {
-                console.error("Failed to load activities", error)
-            } finally {
-                setLoading(false)
+        fetchActivities(currentPage)
+    }, [currentPage])
+
+    const fetchActivities = async (page: number) => {
+        setLoading(true)
+        try {
+            const res = await fetch(`/api/activities?page=${page}&limit=10`)
+            if (res.ok) {
+                const json = await res.json()
+                setActivities(json.data)
+                setTotalPages(json.meta.totalPages)
             }
+        } catch (error) {
+            console.error("Failed to load activities", error)
+        } finally {
+            setLoading(false)
         }
-        fetchActivities()
-    }, [])
+    }
 
     const getActivityIcon = (type: string) => {
         switch (type) {
@@ -70,9 +77,16 @@ export default function ActivityPage() {
 
             <div className="premium-card overflow-hidden">
                 {loading ? (
-                    <div className="p-12 text-center text-sm text-slate-500">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4" />
-                        Загрузка активности...
+                    <div className="divide-y divide-slate-100">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                            <div key={i} className="flex items-start gap-4 px-6 py-4">
+                                <Skeleton className="w-8 h-8 rounded-lg flex-shrink-0" />
+                                <div className="flex-1 space-y-2 mt-1">
+                                    <Skeleton className="h-4 w-3/4" />
+                                    <Skeleton className="h-3 w-1/2" />
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 ) : activities.length === 0 ? (
                     <div className="p-12 text-center text-sm text-slate-500">
@@ -118,6 +132,13 @@ export default function ActivityPage() {
                     </div>
                 )}
             </div>
+            {!loading && activities.length > 0 && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                />
+            )}
         </div>
     )
 }

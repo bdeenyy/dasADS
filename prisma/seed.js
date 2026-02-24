@@ -1,32 +1,43 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
-require('dotenv').config()
 const { PrismaClient } = require('@prisma/client')
 const bcrypt = require('bcryptjs')
 
-const prisma = new PrismaClient({
-    datasourceUrl: process.env.DATABASE_URL,
-})
+const prisma = new PrismaClient()
 
 async function main() {
-    const hashedPassword = await bcrypt.hash('password123', 10)
+    console.log('Seeding database...')
 
+    // Create a demo organization
     const org = await prisma.organization.upsert({
-        where: { name: 'Recruiting HQ' },
+        where: { name: 'Demo Organization' },
         update: {},
         create: {
-            name: 'Recruiting HQ',
-            users: {
-                create: {
-                    email: 'admin@recruiting.hq',
-                    name: 'Super Admin',
-                    role: 'MASTER',
-                    hashedPassword,
-                },
-            },
+            name: 'Demo Organization',
         },
     })
 
-    console.log({ org })
+    // Create a master user for demo org
+    const hashedPassword = await bcrypt.hash('password123', 10)
+
+    const masterUser = await prisma.user.upsert({
+        where: { email: 'admin@demo.com' },
+        update: {},
+        create: {
+            email: 'admin@demo.com',
+            name: 'Admin User',
+            hashedPassword,
+            role: 'MASTER',
+            organizationId: org.id,
+        },
+    })
+
+    console.log('Database seeded successfully!')
+    console.log({
+        Organization: org.name,
+        User: masterUser.email,
+        Role: masterUser.role,
+        Password: 'password123'
+    })
 }
 
 main()

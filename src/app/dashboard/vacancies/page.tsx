@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Plus, BriefcaseBusiness, Building2, Banknote } from "lucide-react"
+import { TableSkeleton } from "@/components/Skeleton"
+import { Pagination } from "@/components/Pagination"
 
 type Vacancy = {
     id: string
@@ -10,6 +12,8 @@ type Vacancy = {
     status: string
     salaryMin: number | null
     salaryMax: number | null
+    avitoStatus: string | null
+    avitoId: number | null
     customer: {
         name: string
     }
@@ -19,13 +23,21 @@ export default function VacanciesPage() {
     const router = useRouter()
     const [vacancies, setVacancies] = useState<Vacancy[]>([])
     const [loading, setLoading] = useState(true)
+    const [currentPage, setCurrentPage] = useState(1)
+    const [totalPages, setTotalPages] = useState(1)
 
-    const fetchVacancies = async () => {
+    useEffect(() => {
+        fetchVacancies(currentPage)
+    }, [currentPage])
+
+    const fetchVacancies = async (page: number) => {
+        setLoading(true)
         try {
-            const res = await fetch("/api/vacancies")
+            const res = await fetch(`/api/vacancies?page=${page}&limit=10`)
             if (res.ok) {
-                const data = await res.json()
-                setVacancies(data)
+                const json = await res.json()
+                setVacancies(json.data)
+                setTotalPages(json.meta.totalPages)
             }
         } catch (error) {
             console.error(error)
@@ -33,10 +45,6 @@ export default function VacanciesPage() {
             setLoading(false)
         }
     }
-
-    useEffect(() => {
-        fetchVacancies()
-    }, [])
 
     return (
         <div className="space-y-6">
@@ -76,6 +84,9 @@ export default function VacanciesPage() {
                                 <th scope="col" className="px-6 py-4 text-left">
                                     Статус
                                 </th>
+                                <th scope="col" className="px-6 py-4 text-left">
+                                    Авито
+                                </th>
                                 <th scope="col" className="relative px-6 py-4">
                                     <span className="sr-only">Действия</span>
                                 </th>
@@ -83,17 +94,10 @@ export default function VacanciesPage() {
                         </thead>
                         <tbody className="divide-y divide-slate-100 bg-white">
                             {loading ? (
-                                <tr>
-                                    <td colSpan={5} className="py-12 text-center text-sm text-slate-500">
-                                        <div className="flex flex-col items-center justify-center">
-                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4"></div>
-                                            Загрузка вакансий...
-                                        </div>
-                                    </td>
-                                </tr>
+                                <TableSkeleton columns={6} rows={4} />
                             ) : vacancies.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-500">
+                                    <td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-500">
                                         <BriefcaseBusiness className="mx-auto h-12 w-12 text-slate-300 mb-3" />
                                         <p>У вас пока нет ни одной вакансии.</p>
                                     </td>
@@ -145,6 +149,21 @@ export default function VacanciesPage() {
                                                 {vacancy.status}
                                             </span>
                                         </td>
+                                        <td className="whitespace-nowrap px-6 py-5">
+                                            {vacancy.avitoStatus === 'PUBLISHED' ? (
+                                                <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                                                    Авито #{vacancy.avitoId}
+                                                </span>
+                                            ) : vacancy.avitoStatus === 'ERROR' ? (
+                                                <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+                                                    <span className="h-1.5 w-1.5 rounded-full bg-red-500"></span>
+                                                    Ошибка
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs text-slate-400">—</span>
+                                            )}
+                                        </td>
                                         <td className="whitespace-nowrap px-6 py-5 text-right text-sm font-medium">
                                             <button
                                                 onClick={() => router.push(`/dashboard/vacancies/${vacancy.id}`)}
@@ -159,6 +178,13 @@ export default function VacanciesPage() {
                         </tbody>
                     </table>
                 </div>
+                {!loading && vacancies.length > 0 && (
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                    />
+                )}
             </div>
         </div>
     )

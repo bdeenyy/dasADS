@@ -91,6 +91,49 @@ export class AvitoAPI {
 
         return response.json();
     }
+
+    /**
+     * Update an existing vacancy on Avito
+     */
+    async updateVacancy(avitoId: number, vacancyData: unknown): Promise<unknown> {
+        const token = await this.authenticate();
+
+        const response = await fetch(`${this.baseUrl}/job/v2/vacancies/${avitoId}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(vacancyData)
+        });
+
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(`Failed to update vacancy ${avitoId}: ${error}`);
+        }
+
+        return response.json();
+    }
+
+    /**
+     * Deactivate (remove) a vacancy from Avito
+     */
+    async deactivateVacancy(avitoId: number): Promise<void> {
+        const token = await this.authenticate();
+
+        const response = await fetch(`${this.baseUrl}/job/v2/vacancies/${avitoId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            }
+        });
+
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(`Failed to deactivate vacancy ${avitoId}: ${error}`);
+        }
+    }
 }
 
 /**

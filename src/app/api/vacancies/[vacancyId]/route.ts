@@ -130,14 +130,25 @@ export async function PUT(
                     { id: vacancyId, title, description, salaryMin, salaryMax, experience, employmentType, city },
                     avitoConfig as Record<string, string>
                 )
-                const avitoResponse = await avitoClient.publishVacancy(avitoPayload) as { id?: number }
-                await prisma.vacancy.update({
-                    where: { id: vacancyId },
-                    data: {
-                        avitoId: avitoResponse.id || null,
-                        avitoStatus: "PUBLISHED"
-                    }
-                })
+
+                if (existingVacancy.avitoId) {
+                    // Update existing Avito listing
+                    await avitoClient.updateVacancy(existingVacancy.avitoId, avitoPayload)
+                    await prisma.vacancy.update({
+                        where: { id: vacancyId },
+                        data: { avitoStatus: "PUBLISHED" }
+                    })
+                } else {
+                    // Create new listing on Avito
+                    const avitoResponse = await avitoClient.publishVacancy(avitoPayload) as { id?: number }
+                    await prisma.vacancy.update({
+                        where: { id: vacancyId },
+                        data: {
+                            avitoId: avitoResponse.id || null,
+                            avitoStatus: "PUBLISHED"
+                        }
+                    })
+                }
             } catch (err) {
                 console.error("Failed to update on Avito:", err)
                 await prisma.vacancy.update({
@@ -178,6 +189,17 @@ export async function DELETE(
 
         if (!existingVacancy || existingVacancy.customer.organizationId !== session.user.organizationId) {
             return new NextResponse("Not Found", { status: 404 })
+        }
+
+        // Deactivate on Avito first if published
+        if (existingVacancy.avitoId) {
+            try {
+                const { createAvitoClient } = await import("@/lib/avito")
+                const avitoClient = await createAvitoClient(session.user.organizationId)
+                await avitoClient.deactivateVacancy(existingVacancy.avitoId)
+            } catch (err) {
+                console.error("Failed to deactivate on Avito (proceeding with delete):", err)
+            }
         }
 
         const vacancy = await prisma.vacancy.delete({

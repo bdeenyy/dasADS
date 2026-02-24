@@ -2,10 +2,12 @@
 
 import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/components/ToastProvider"
 import KanbanBoard from "@/components/KanbanBoard"
 
 export default function VacancyForm({ params }: { params: Promise<{ vacancyId: string }> }) {
     const router = useRouter()
+    const { showToast } = useToast()
     const { vacancyId } = use(params)
     const isNew = vacancyId === "new"
 
@@ -35,10 +37,15 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
         avitoJobType: "Полный день",
         avitoManagerName: "",
         avitoContactPhone: "",
+        avitoIndustry: "",
+        avitoProfession: "",
+        avitoExperience: "",
+        avitoEmploymentType: "",
         publishToAvito: false,
     })
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
+    const [syncing, setSyncing] = useState(false)
     const [error, setError] = useState("")
 
     useEffect(() => {
@@ -92,6 +99,10 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
                                 avitoJobType: current.avitoConfig?.jobType || "Полный день",
                                 avitoManagerName: current.avitoConfig?.managerName || "",
                                 avitoContactPhone: current.avitoConfig?.contactPhone || "",
+                                avitoIndustry: current.avitoConfig?.industry || "",
+                                avitoProfession: current.avitoConfig?.profession || "",
+                                avitoExperience: current.avitoConfig?.experience || "",
+                                avitoEmploymentType: current.avitoConfig?.employmentType || "",
                                 publishToAvito: false, // Don't auto-publish existing if un-clicking
                             })
                         } else {
@@ -135,6 +146,10 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
                 jobType: formData.avitoJobType,
                 managerName: formData.avitoManagerName,
                 contactPhone: formData.avitoContactPhone,
+                industry: formData.avitoIndustry,
+                profession: formData.avitoProfession,
+                experience: formData.avitoExperience,
+                employmentType: formData.avitoEmploymentType,
             }
 
             const payload = {
@@ -156,12 +171,18 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
                 throw new Error(text || "Failed to save vacancy")
             }
 
+            showToast(isNew ? "Вакансия успешно создана" : "Вакансия сохранена", "success")
             router.push("/dashboard/vacancies")
             router.refresh()
         } catch (err: unknown) {
             console.error(err)
-            if (err instanceof Error) setError(err.message)
-            else setError(String(err))
+            if (err instanceof Error) {
+                setError(err.message)
+                showToast(err.message, "error")
+            } else {
+                setError(String(err))
+                showToast(String(err), "error")
+            }
             setSaving(false)
         }
     }
@@ -177,12 +198,47 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
 
             if (!res.ok) throw new Error("Failed to delete")
 
+            showToast("Вакансия удалена", "success")
             router.push("/dashboard/vacancies")
             router.refresh()
         } catch (err: unknown) {
-            if (err instanceof Error) setError(err.message)
-            else setError(String(err))
+            if (err instanceof Error) {
+                setError(err.message)
+                showToast(err.message, "error")
+            } else {
+                setError(String(err))
+                showToast(String(err), "error")
+            }
             setSaving(false)
+        }
+    }
+
+    const handleSyncAvito = async () => {
+        setSyncing(true)
+        try {
+            const res = await fetch(`/api/avito/sync`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ vacancyId }),
+            })
+
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.message || "Failed to sync applies")
+
+            showToast(`Синхронизация завершена. Новых откликов: ${data.newApplies || 0}`, "success")
+
+            // Force reload board by toggling tab if needed or let user refresh manually.
+            // Simplest way is a soft refresh
+            router.refresh()
+        } catch (err: unknown) {
+            console.error(err)
+            if (err instanceof Error) {
+                showToast(err.message, "error")
+            } else {
+                showToast(String(err), "error")
+            }
+        } finally {
+            setSyncing(false)
         }
     }
 
@@ -438,6 +494,70 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
                                                 placeholder="Адрес для соискателей..."
                                             />
                                         </div>
+
+                                        {/* Required Avito Fields */}
+                                        <div className="sm:col-span-3">
+                                            <label htmlFor="avitoIndustry" className="block text-sm font-medium leading-6 text-gray-900">
+                                                Сфера деятельности <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                id="avitoIndustry"
+                                                value={formData.avitoIndustry}
+                                                onChange={(e) => setFormData({ ...formData, avitoIndustry: e.target.value })}
+                                                className="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
+                                                placeholder="Например: IT, интернет, телеком"
+                                            />
+                                        </div>
+                                        <div className="sm:col-span-3">
+                                            <label htmlFor="avitoProfession" className="block text-sm font-medium leading-6 text-gray-900">
+                                                Профессия (Авито) <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                id="avitoProfession"
+                                                value={formData.avitoProfession}
+                                                onChange={(e) => setFormData({ ...formData, avitoProfession: e.target.value })}
+                                                className="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
+                                                placeholder="Например: Программист"
+                                            />
+                                        </div>
+                                        <div className="sm:col-span-3">
+                                            <label htmlFor="avitoExperience" className="block text-sm font-medium leading-6 text-gray-900">
+                                                Опыт работы (Авито) <span className="text-red-500">*</span>
+                                            </label>
+                                            <select
+                                                id="avitoExperience"
+                                                value={formData.avitoExperience}
+                                                onChange={(e) => setFormData({ ...formData, avitoExperience: e.target.value })}
+                                                className="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
+                                            >
+                                                <option value="">— Выберите —</option>
+                                                <option value="Без опыта">Без опыта</option>
+                                                <option value="Более 1 года">Более 1 года</option>
+                                                <option value="Более 3 лет">Более 3 лет</option>
+                                                <option value="Более 5 лет">Более 5 лет</option>
+                                                <option value="Более 10 лет">Более 10 лет</option>
+                                            </select>
+                                        </div>
+                                        <div className="sm:col-span-3">
+                                            <label htmlFor="avitoEmploymentType" className="block text-sm font-medium leading-6 text-gray-900">
+                                                Тип занятости (Авито) <span className="text-red-500">*</span>
+                                            </label>
+                                            <select
+                                                id="avitoEmploymentType"
+                                                value={formData.avitoEmploymentType}
+                                                onChange={(e) => setFormData({ ...formData, avitoEmploymentType: e.target.value })}
+                                                className="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
+                                            >
+                                                <option value="">— Выберите —</option>
+                                                <option value="Полная">Полная</option>
+                                                <option value="Частичная">Частичная</option>
+                                                <option value="Временная">Временная</option>
+                                                <option value="Стажировка">Стажировка</option>
+                                            </select>
+                                        </div>
+
                                         <div className="sm:col-span-2">
                                             <label htmlFor="avitoContactMethod" className="block text-sm font-medium leading-6 text-gray-900">
                                                 Способ связи
@@ -590,6 +710,23 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
                 </form>
             ) : (
                 <div className="mt-6">
+                    <div className="mb-4 flex justify-end">
+                        <button
+                            type="button"
+                            onClick={handleSyncAvito}
+                            disabled={syncing}
+                            className="inline-flex items-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50"
+                        >
+                            {syncing ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900" />
+                                    Синхронизация...
+                                </>
+                            ) : (
+                                "Синхронизировать с Avito"
+                            )}
+                        </button>
+                    </div>
                     <KanbanBoard vacancyId={vacancyId} />
                 </div>
             )}

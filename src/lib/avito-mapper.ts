@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client"
+
 
 /**
  * Avito XML feed payload types based on the official Avito documentation.
@@ -95,9 +95,9 @@ export function mapVacancyToAvito(vacancy: VacancyData, avitoConfig: AvitoConfig
     const errors: string[] = []
 
     // Required field checks
-    if (!avitoConfig.avitoIndustry) errors.push("Не указана сфера деятельности (Industry)")
-    if (!avitoConfig.avitoProfession) errors.push("Не указана профессия (Profession)")
-    if (!avitoConfig.avitoAddress) errors.push("Не указан адрес")
+    if (!avitoConfig.industry) errors.push("Не указана сфера деятельности (Industry)")
+    if (!avitoConfig.profession) errors.push("Не указана профессия (Profession)")
+    if (!avitoConfig.address) errors.push("Не указан адрес")
     if (!vacancy.title) errors.push("Не указано название вакансии")
 
     const description = vacancy.description || ""
@@ -107,18 +107,18 @@ export function mapVacancyToAvito(vacancy: VacancyData, avitoConfig: AvitoConfig
     if (vacancy.title && vacancy.title.length > 100) errors.push(`Название слишком длинное (${vacancy.title.length}/100 символов)`)
 
     // Determine experience
-    const experience = avitoConfig.avitoExperience
+    const experience = avitoConfig.experience
         || (vacancy.experience ? EXPERIENCE_MAP[vacancy.experience] : null)
     if (!experience) errors.push("Не указан опыт работы (Experience)")
 
     // Determine employment type
-    const employmentType = avitoConfig.avitoEmploymentType
+    const employmentType = avitoConfig.employmentType
         || (vacancy.employmentType ? EMPLOYMENT_TYPE_MAP[vacancy.employmentType] : null)
     if (!employmentType) errors.push("Не указан тип занятости (EmploymentType)")
 
     // Determine job type (schedule)
-    const jobType = avitoConfig.avitoJobType
-        ? JOB_TYPE_MAP[avitoConfig.avitoJobType] || avitoConfig.avitoJobType
+    const jobType = avitoConfig.jobType
+        ? JOB_TYPE_MAP[avitoConfig.jobType] || avitoConfig.jobType
         : "Фиксированный"
 
     if (errors.length > 0) {
@@ -128,14 +128,14 @@ export function mapVacancyToAvito(vacancy: VacancyData, avitoConfig: AvitoConfig
     const payload: AvitoVacancyPayload = {
         Id: vacancy.id,
         Category: "Вакансии",
-        Industry: avitoConfig.avitoIndustry!,
-        Profession: avitoConfig.avitoProfession!,
+        Industry: avitoConfig.industry!,
+        Profession: avitoConfig.profession!,
         Title: vacancy.title.slice(0, 100),
         Description: description,
         EmploymentType: employmentType!,
         JobType: jobType,
         Experience: experience!,
-        Address: avitoConfig.avitoAddress!,
+        Address: avitoConfig.address!,
     }
 
     // Optional: salary
@@ -146,13 +146,13 @@ export function mapVacancyToAvito(vacancy: VacancyData, avitoConfig: AvitoConfig
     }
 
     // Optional: contact info
-    if (avitoConfig.avitoContactMethod) payload.ContactMethod = avitoConfig.avitoContactMethod
-    if (avitoConfig.avitoManagerName) payload.ManagerName = avitoConfig.avitoManagerName
-    if (avitoConfig.avitoContactPhone) payload.ContactPhone = avitoConfig.avitoContactPhone
+    if (avitoConfig.contactMethod) payload.ContactMethod = avitoConfig.contactMethod
+    if (avitoConfig.managerName) payload.ManagerName = avitoConfig.managerName
+    if (avitoConfig.contactPhone) payload.ContactPhone = avitoConfig.contactPhone
 
     // Optional: image
-    if (avitoConfig.avitoImageUrl) {
-        payload.Images = { Image: [{ url: avitoConfig.avitoImageUrl }] }
+    if (avitoConfig.imageUrl) {
+        payload.Images = { Image: [{ url: avitoConfig.imageUrl }] }
     }
 
     return payload

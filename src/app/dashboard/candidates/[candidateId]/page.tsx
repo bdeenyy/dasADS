@@ -4,6 +4,7 @@ import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
 import { Mail, Phone, Link2, Briefcase, CalendarDays, ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { useToast } from "@/components/ToastProvider"
 
 type ApplicationData = {
     id: string
@@ -35,6 +36,7 @@ type CandidateDetail = {
 
 export default function CandidateDetailPage({ params }: { params: Promise<{ candidateId: string }> }) {
     const router = useRouter()
+    const { showToast } = useToast()
     const { candidateId } = use(params)
 
     const [candidate, setCandidate] = useState<CandidateDetail | null>(null)
@@ -86,9 +88,15 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ cand
             const updated = await res.json()
             setCandidate(prev => prev ? { ...prev, ...updated } : prev)
             setEditing(false)
+            showToast("Данные успешно сохранены", "success")
         } catch (err: unknown) {
-            if (err instanceof Error) setError(err.message)
-            else setError(String(err))
+            if (err instanceof Error) {
+                setError(err.message)
+                showToast(err.message, "error")
+            } else {
+                setError(String(err))
+                showToast(String(err), "error")
+            }
         } finally {
             setSaving(false)
         }
@@ -99,10 +107,16 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ cand
         try {
             const res = await fetch(`/api/candidates/${candidateId}`, { method: "DELETE" })
             if (!res.ok) throw new Error("Ошибка удаления")
+            showToast("Кандидат удален", "success")
             router.push("/dashboard/candidates")
         } catch (err: unknown) {
-            if (err instanceof Error) setError(err.message)
-            else setError(String(err))
+            if (err instanceof Error) {
+                setError(err.message)
+                showToast(err.message, "error")
+            } else {
+                setError(String(err))
+                showToast(String(err), "error")
+            }
         }
     }
 

@@ -2,9 +2,11 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/components/ToastProvider"
 
 export default function NewUserForm() {
     const router = useRouter()
+    const { showToast } = useToast()
 
     const [formData, setFormData] = useState({
         name: "",
@@ -41,13 +43,16 @@ export default function NewUserForm() {
                 throw new Error(errorText || "Ошибка при создании пользователя")
             }
 
+            showToast("Сотрудник успешно добавлен", "success")
             router.push("/dashboard/users")
             router.refresh()
         } catch (err: unknown) {
             if (err instanceof Error) {
                 setError(err.message)
+                showToast(err.message, "error")
             } else {
                 setError(String(err))
+                showToast(String(err), "error")
             }
             setSaving(false)
         }

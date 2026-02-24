@@ -12,6 +12,9 @@ export async function GET(req: Request) {
     const vacancyId = searchParams.get("vacancyId")
     const candidateId = searchParams.get("candidateId")
     const customerId = searchParams.get("customerId")
+    const page = parseInt(searchParams.get("page") || "1")
+    const limit = parseInt(searchParams.get("limit") || "20")
+    const skip = (page - 1) * limit
 
     try {
         const whereClause: Record<string, unknown> = {
@@ -25,26 +28,38 @@ export async function GET(req: Request) {
         if (candidateId) whereClause.candidateId = candidateId
         if (customerId) whereClause.customerId = customerId
 
-        const activities = await prisma.activity.findMany({
-            where: whereClause,
-            include: {
-                user: {
-                    select: { name: true, email: true }
+        const [activities, total] = await Promise.all([
+            prisma.activity.findMany({
+                where: whereClause,
+                include: {
+                    user: {
+                        select: { name: true, email: true }
+                    },
+                    candidate: {
+                        select: { firstName: true, lastName: true }
+                    },
+                    vacancy: {
+                        select: { title: true }
+                    }
                 },
-                candidate: {
-                    select: { firstName: true, lastName: true }
+                orderBy: {
+                    createdAt: "desc",
                 },
-                vacancy: {
-                    select: { title: true }
-                }
-            },
-            orderBy: {
-                createdAt: "desc",
-            },
-            take: 50
-        })
+                skip,
+                take: limit
+            }),
+            prisma.activity.count({ where: whereClause })
+        ])
 
-        return NextResponse.json(activities)
+        return NextResponse.json({
+            data: activities,
+            meta: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
+        })
     } catch (error) {
         console.error("[ACTIVITIES_GET]", error)
         return new NextResponse("Internal Error", { status: 500 })

@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react"
 import { Search, UserCircle2, Mail, Phone, CalendarDays } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { TableSkeleton } from "@/components/Skeleton"
+import { Pagination } from "@/components/Pagination"
 
 export default function CandidatesPage() {
 
@@ -12,18 +14,22 @@ export default function CandidatesPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
     const [searchQuery, setSearchQuery] = useState("")
+    const [currentPage, setCurrentPage] = useState(1)
+    const [totalPages, setTotalPages] = useState(1)
     const router = useRouter()
 
     useEffect(() => {
-        fetchCandidates()
-    }, [])
+        fetchCandidates(currentPage)
+    }, [currentPage])
 
-    const fetchCandidates = async () => {
+    const fetchCandidates = async (page: number) => {
+        setLoading(true)
         try {
-            const res = await fetch("/api/candidates")
+            const res = await fetch(`/api/candidates?page=${page}&limit=10`)
             if (res.ok) {
-                const data = await res.json()
-                setCandidates(data)
+                const json = await res.json()
+                setCandidates(json.data)
+                setTotalPages(json.meta.totalPages)
             } else {
                 setError("Failed to load candidates")
             }
@@ -45,15 +51,6 @@ export default function CandidatesPage() {
             candidate.phone?.includes(query)
         )
     })
-
-    if (loading) return (
-        <div className="space-y-6">
-            <div className="h-8 w-48 bg-slate-200 rounded animate-pulse" />
-            <div className="premium-card p-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto" />
-            </div>
-        </div>
-    )
 
     return (
         <div className="space-y-6">
@@ -103,7 +100,9 @@ export default function CandidatesPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 bg-white">
-                            {filteredCandidates.map((candidate) => (
+                            {loading ? (
+                                <TableSkeleton columns={4} rows={4} />
+                            ) : filteredCandidates.map((candidate) => (
                                 <tr
                                     key={candidate.id}
                                     className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
@@ -164,6 +163,13 @@ export default function CandidatesPage() {
                         </tbody>
                     </table>
                 </div>
+                {!loading && filteredCandidates.length > 0 && (
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                    />
+                )}
             </div>
         </div>
     )

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { Users, Shield, ShieldCheck, User, Trash2, Pencil } from "lucide-react"
+import { TableSkeleton } from "@/components/Skeleton"
+import { Pagination } from "@/components/Pagination"
 
 
 type UserData = {
@@ -16,6 +18,8 @@ export default function UsersPage() {
     const [users, setUsers] = useState<UserData[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
+    const [currentPage, setCurrentPage] = useState(1)
+    const [totalPages, setTotalPages] = useState(1)
     const [currentRole, setCurrentRole] = useState<string | null>(null)
     const [currentUserId, setCurrentUserId] = useState<string | null>(null)
     const [isAddOpen, setIsAddOpen] = useState(false)
@@ -28,12 +32,14 @@ export default function UsersPage() {
         role: "RECRUITER" as "MASTER" | "MANAGER" | "RECRUITER",
     })
 
-    const fetchUsers = async () => {
+    const fetchUsers = async (page: number) => {
+        setLoading(true)
         try {
-            const res = await fetch("/api/users")
+            const res = await fetch(`/api/users?page=${page}&limit=10`)
             if (!res.ok) throw new Error("Failed to load users")
-            const data = await res.json()
-            setUsers(data)
+            const json = await res.json()
+            setUsers(json.data)
+            setTotalPages(json.meta.totalPages)
         } catch (err: unknown) {
             if (err instanceof Error) setError(err.message)
             else setError(String(err))
@@ -50,10 +56,13 @@ export default function UsersPage() {
                 setCurrentRole(sess?.user?.role || null)
                 setCurrentUserId(sess?.user?.id || null)
             }
-            fetchUsers()
         }
         init()
     }, [])
+
+    useEffect(() => {
+        fetchUsers(currentPage)
+    }, [currentPage])
 
     const isMaster = currentRole === 'MASTER'
 
@@ -72,7 +81,7 @@ export default function UsersPage() {
             }
             setIsAddOpen(false)
             setFormData({ name: "", email: "", password: "", role: "RECRUITER" })
-            fetchUsers()
+            fetchUsers(currentPage)
         } catch (err: unknown) {
             if (err instanceof Error) setError(err.message)
             else setError(String(err))
@@ -92,7 +101,7 @@ export default function UsersPage() {
                 throw new Error(text)
             }
             setEditingUserId(null)
-            fetchUsers()
+            fetchUsers(currentPage)
         } catch (err: unknown) {
             if (err instanceof Error) setError(err.message)
             else setError(String(err))
@@ -108,7 +117,7 @@ export default function UsersPage() {
                 const text = await res.text()
                 throw new Error(text)
             }
-            fetchUsers()
+            fetchUsers(currentPage)
         } catch (err: unknown) {
             if (err instanceof Error) setError(err.message)
             else setError(String(err))
@@ -137,15 +146,6 @@ export default function UsersPage() {
                 )
         }
     }
-
-    if (loading) return (
-        <div className="space-y-6">
-            <div className="h-8 w-48 bg-slate-200 rounded animate-pulse" />
-            <div className="premium-card p-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto" />
-            </div>
-        </div>
-    )
 
     return (
         <div className="space-y-6">
@@ -222,7 +222,15 @@ export default function UsersPage() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 bg-white">
-                        {users.map((user) => (
+                        {loading ? (
+                            <TableSkeleton columns={isMaster ? 4 : 3} rows={5} />
+                        ) : users.length === 0 ? (
+                            <tr>
+                                <td colSpan={isMaster ? 4 : 3} className="py-12 text-center text-sm text-slate-500">
+                                    Команда пока пуста
+                                </td>
+                            </tr>
+                        ) : users.map((user) => (
                             <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
                                 <td className="py-4 pl-6 pr-3">
                                     <div className="flex items-center gap-3">
@@ -281,16 +289,16 @@ export default function UsersPage() {
                                 )}
                             </tr>
                         ))}
-                        {users.length === 0 && (
-                            <tr>
-                                <td colSpan={isMaster ? 4 : 3} className="py-12 text-center text-sm text-slate-500">
-                                    Команда пока пуста
-                                </td>
-                            </tr>
-                        )}
                     </tbody>
                 </table>
             </div>
+            {!loading && users.length > 0 && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                />
+            )}
         </div>
     )
 }

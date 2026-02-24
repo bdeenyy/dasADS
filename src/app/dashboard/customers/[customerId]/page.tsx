@@ -2,9 +2,11 @@
 
 import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/components/ToastProvider"
 
 export default function CustomerForm({ params }: { params: Promise<{ customerId: string }> }) {
     const router = useRouter()
+    const { showToast } = useToast()
     const { customerId } = use(params)
     const isNew = customerId === "new"
 
@@ -70,13 +72,16 @@ export default function CustomerForm({ params }: { params: Promise<{ customerId:
                 throw new Error("Failed to save customer")
             }
 
+            showToast(isNew ? "Заказчик успешно создан" : "Заказчик сохранен", "success")
             router.push("/dashboard/customers")
             router.refresh()
         } catch (err: unknown) {
             if (err instanceof Error) {
                 setError(err.message)
+                showToast(err.message, "error")
             } else {
                 setError(String(err))
+                showToast(String(err), "error")
             }
             setSaving(false)
         }
@@ -93,13 +98,16 @@ export default function CustomerForm({ params }: { params: Promise<{ customerId:
 
             if (!res.ok) throw new Error("Failed to delete")
 
+            showToast("Заказчик удален", "success")
             router.push("/dashboard/customers")
             router.refresh()
         } catch (err: unknown) {
             if (err instanceof Error) {
                 setError(err.message)
+                showToast(err.message, "error")
             } else {
                 setError(String(err))
+                showToast(String(err), "error")
             }
             setSaving(false)
         }
@@ -108,7 +116,7 @@ export default function CustomerForm({ params }: { params: Promise<{ customerId:
     if (loading) return <div>Загрузка...</div>
 
     return (
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-2xl mx-auto space-y-6">
             <div className="md:flex md:items-center md:justify-between mb-6">
                 <div className="min-w-0 flex-1">
                     <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
@@ -117,7 +125,7 @@ export default function CustomerForm({ params }: { params: Promise<{ customerId:
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6 bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl md:col-span-2">
+            <form onSubmit={handleSubmit} className="premium-card space-y-6">
                 <div className="px-4 py-6 sm:p-8">
                     <div className="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
 

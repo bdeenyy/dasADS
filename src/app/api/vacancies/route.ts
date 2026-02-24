@@ -5,11 +5,16 @@ import { Prisma } from "@prisma/client"
 
 import { createAvitoClient } from "@/lib/avito"
 
-export async function GET() {
+export async function GET(req: Request) {
     const session = await auth()
     if (!session?.user) {
         return new NextResponse("Unauthorized", { status: 401 })
     }
+
+    const { searchParams } = new URL(req.url)
+    const page = parseInt(searchParams.get("page") || "1")
+    const limit = parseInt(searchParams.get("limit") || "10")
+    const skip = (page - 1) * limit
 
     try {
         const queryWhere: Record<string, unknown> = {
@@ -23,19 +28,33 @@ export async function GET() {
             queryWhere.ownerId = session.user.id;
         }
 
-        const vacancies = await prisma.vacancy.findMany({
-            where: queryWhere,
-            include: {
-                customer: true,
-                owner: {
-                    select: { name: true, email: true }
-                }
-            },
-            orderBy: {
-                createdAt: "desc",
-            },
+        const [vacancies, total] = await Promise.all([
+            prisma.vacancy.findMany({
+                where: queryWhere,
+                include: {
+                    customer: true,
+                    owner: {
+                        select: { name: true, email: true }
+                    }
+                },
+                orderBy: {
+                    createdAt: "desc",
+                },
+                skip,
+                take: limit
+            }),
+            prisma.vacancy.count({ where: queryWhere })
+        ])
+
+        return NextResponse.json({
+            data: vacancies,
+            meta: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
         })
-        return NextResponse.json(vacancies)
     } catch (error) {
         console.error("[VACANCIES_GET]", error)
         return new NextResponse("Internal Error", { status: 500 })

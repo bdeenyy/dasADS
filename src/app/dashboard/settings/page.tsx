@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/components/ToastProvider"
 
 export default function SettingsPage() {
     const router = useRouter()
+    const { showToast } = useToast()
     const [formData, setFormData] = useState({
         name: "",
         avitoClientId: "",
@@ -12,7 +14,6 @@ export default function SettingsPage() {
     })
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
-    const [message, setMessage] = useState({ type: "", text: "" })
 
     useEffect(() => {
         const fetchData = async () => {
@@ -29,22 +30,21 @@ export default function SettingsPage() {
                     if (res.status === 401) {
                         router.push('/dashboard')
                     } else {
-                        setMessage({ type: "error", text: "Failed to load settings" })
+                        showToast("Failed to load settings", "error")
                     }
                 }
             } catch {
-                setMessage({ type: "error", text: "Error loading data" })
+                showToast("Error loading data", "error")
             } finally {
                 setLoading(false)
             }
         }
         fetchData()
-    }, [router])
+    }, [router, showToast])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setSaving(true)
-        setMessage({ type: "", text: "" })
 
         try {
             const res = await fetch("/api/settings/organization", {
@@ -57,13 +57,13 @@ export default function SettingsPage() {
                 throw new Error("Failed to save settings")
             }
 
-            setMessage({ type: "success", text: "Настройки успешно сохранены!" })
+            showToast("Настройки успешно сохранены!", "success")
             router.refresh()
         } catch (err: unknown) {
             if (err instanceof Error) {
-                setMessage({ type: "error", text: err.message })
+                showToast(err.message, "error")
             } else {
-                setMessage({ type: "error", text: String(err) })
+                showToast(String(err), "error")
             }
         } finally {
             setSaving(false)
@@ -150,12 +150,6 @@ export default function SettingsPage() {
                     </div>
                 </div>
 
-                {message.text && (
-                    <div className={`px-4 py-3 text-sm border-t ${message.type === 'success' ? 'bg-green-50 text-green-800 border-green-200' : 'bg-red-50 text-red-800 border-red-200'}`}>
-                        {message.text}
-                    </div>
-                )}
-
                 <div className="flex items-center justify-end border-t border-gray-900/10 px-4 py-4 sm:px-8">
                     <button
                         type="submit"
@@ -174,23 +168,22 @@ export default function SettingsPage() {
 }
 
 function PasswordChangeForm() {
+    const { showToast } = useToast()
     const [currentPassword, setCurrentPassword] = useState("")
     const [newPassword, setNewPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
     const [saving, setSaving] = useState(false)
-    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string }>({ type: 'error', text: '' })
 
     const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault()
-        setMessage({ type: 'error', text: '' })
 
         if (newPassword !== confirmPassword) {
-            setMessage({ type: 'error', text: 'Пароли не совпадают' })
+            showToast('Пароли не совпадают', 'error')
             return
         }
 
         if (newPassword.length < 6) {
-            setMessage({ type: 'error', text: 'Новый пароль должен быть не менее 6 символов' })
+            showToast('Новый пароль должен быть не менее 6 символов', 'error')
             return
         }
 
@@ -210,10 +203,10 @@ function PasswordChangeForm() {
             setCurrentPassword("")
             setNewPassword("")
             setConfirmPassword("")
-            setMessage({ type: 'success', text: 'Пароль успешно изменён' })
+            showToast('Пароль успешно изменён', 'success')
         } catch (err: unknown) {
-            if (err instanceof Error) setMessage({ type: 'error', text: err.message })
-            else setMessage({ type: 'error', text: String(err) })
+            if (err instanceof Error) showToast(err.message, 'error')
+            else showToast(String(err), 'error')
         } finally {
             setSaving(false)
         }
@@ -241,12 +234,6 @@ function PasswordChangeForm() {
                     </div>
                 </div>
             </div>
-
-            {message.text && (
-                <div className={`px-4 py-3 text-sm border-t ${message.type === 'success' ? 'bg-green-50 text-green-800 border-green-200' : 'bg-red-50 text-red-800 border-red-200'}`}>
-                    {message.text}
-                </div>
-            )}
 
             <div className="flex items-center justify-end border-t border-gray-900/10 px-4 py-4 sm:px-8">
                 <button type="submit" disabled={saving}
