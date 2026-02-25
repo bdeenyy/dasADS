@@ -44,9 +44,13 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
         avitoEmploymentType: "",
         publishToAvito: false,
     })
+    // Avito integration state (read-only, from server)
+    const [vacancyAvitoId, setVacancyAvitoId] = useState<string | null>(null)
+    const [vacancyAvitoStatus, setVacancyAvitoStatus] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [syncing, setSyncing] = useState(false)
+    const [reactivating, setReactivating] = useState(false)
     const [error, setError] = useState("")
 
     useEffect(() => {
@@ -108,6 +112,9 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
                                 avitoEmploymentType: current.avitoConfig?.employmentType || "",
                                 publishToAvito: false, // Don't auto-publish existing if un-clicking
                             })
+                            // Store Avito integration info separately
+                            setVacancyAvitoId(current.avitoId ? String(current.avitoId) : null)
+                            setVacancyAvitoStatus(current.avitoStatus || null)
                         } else {
                             setError("Vacancy not found")
                         }
@@ -229,9 +236,6 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
             if (!res.ok) throw new Error(data.message || "Failed to sync applies")
 
             showToast(`Синхронизация завершена. Новых откликов: ${data.newApplies || 0}`, "success")
-
-            // Force reload board by toggling tab if needed or let user refresh manually.
-            // Simplest way is a soft refresh
             router.refresh()
         } catch (err: unknown) {
             console.error(err)
@@ -242,6 +246,29 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
             }
         } finally {
             setSyncing(false)
+        }
+    }
+
+    const handleReactivateAvito = async () => {
+        if (!confirm("Реактивировать вакансию на Avito? Для этого необходим активный тарифный пакет.")) return
+        setReactivating(true)
+        try {
+            const res = await fetch(`/api/avito/reactivate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ vacancyId }),
+            })
+            if (!res.ok) {
+                const text = await res.text()
+                throw new Error(text || "Не удалось реактивировать")
+            }
+            setVacancyAvitoStatus("activated")
+            setFormData(prev => ({ ...prev, status: "ACTIVE" }))
+            showToast("Вакансия успешно реактивирована на Avito", "success")
+        } catch (err: unknown) {
+            if (err instanceof Error) showToast(err.message, "error")
+        } finally {
+            setReactivating(false)
         }
     }
 
@@ -750,22 +777,39 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
                 </form>
             ) : (
                 <div className="mt-6">
-                    <div className="mb-4 flex justify-end">
-                        <button
-                            type="button"
-                            onClick={handleSyncAvito}
-                            disabled={syncing}
-                            className="inline-flex items-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50"
-                        >
-                            {syncing ? (
-                                <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900" />
-                                    Синхронизация...
-                                </>
-                            ) : (
-                                "Синхронизировать с Avito"
-                            )}
-                        </button>
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                        {/* Reactivate button — only shown when Avito status is archived/expired/closed */}
+                        {vacancyAvitoId && ["archived", "expired", "closed"].includes(vacancyAvitoStatus || "") && (
+                            <button
+                                type="button"
+                                onClick={handleReactivateAvito}
+                                disabled={reactivating}
+                                className="inline-flex items-center gap-x-1.5 rounded-md bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700 shadow-sm ring-1 ring-inset ring-amber-300 hover:bg-amber-100 disabled:opacity-50"
+                            >
+                                {reactivating ? (
+                                    <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-700" />Реактивация...</>
+                                ) : (
+                                    <>⚡ Реактивировать на Avito</>
+                                )}
+                            </button>
+                        )}
+                        <div className="ml-auto">
+                            <button
+                                type="button"
+                                onClick={handleSyncAvito}
+                                disabled={syncing}
+                                className="inline-flex items-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50"
+                            >
+                                {syncing ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900" />
+                                        Синхронизация...
+                                    </>
+                                ) : (
+                                    "Синхронизировать с Avito"
+                                )}
+                            </button>
+                        </div>
                     </div>
                     <KanbanBoard vacancyId={vacancyId} />
                 </div>

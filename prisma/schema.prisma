@@ -78,8 +78,9 @@ model Vacancy {
   
   // Avito Integration
   avitoId        String?      @unique
-  avitoStatus    String?   // Status on Avito
+  avitoStatus    String?   // Status on Avito: created, activated, archived, blocked, closed, expired, rejected, unblocked
   avitoConfig    Json?     // Avito specific configuration, e.g. schedules, bonuses, etc.
+  lastSyncAt     DateTime? // Дата последней синхронизации откликов с Avito
 
   // Relations
   customerId     String
@@ -104,6 +105,12 @@ model Candidate {
   avitoResumeId  String?      // Resume ID on Avito or external
   resumeLink     String?      // Direct link to resume
 
+  // Enriched from Avito applications/resumes
+  age            Int?         // Возраст кандидата
+  citizenship    String?      // Код гражданства ISO 3166-1 alpha-3 (rus, ukr, blr...)
+  gender         String?      // "male" / "female"
+  experienceYears String?     // "0", "lt_1", "1".."50"
+
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -123,7 +130,9 @@ model VacancyApplication {
   candidate    Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 
   status       String    @default("NEW") // NEW, SCREENING, INTERVIEW, OFFER, HIRED, REJECTED
-  avitoApplyId String?   @unique // Integration with Avito application ID
+  avitoApplyId     String?   @unique  // ID отклика на Avito
+  isViewedOnAvito  Boolean   @default(false) // Помечен ли как просмотренный на Avito
+  enrichedData     Json?               // Полные данные из enriched_properties Avito
 
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt

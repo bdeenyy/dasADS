@@ -67,6 +67,7 @@ export async function POST(req: Request) {
                 contactEmail,
                 contactPhone,
                 organizationId: session.user.organizationId,
+                ownerId: session.user.id, // assigning the creator as owner
             },
         })
 

@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Plus, BriefcaseBusiness, Building2, Banknote } from "lucide-react"
+import { Plus, BriefcaseBusiness, Building2, Banknote, RefreshCw, Import } from "lucide-react"
 import { TableSkeleton } from "@/components/Skeleton"
 import { Pagination } from "@/components/Pagination"
+import { useToast } from "@/components/ToastProvider"
 
 type Vacancy = {
     id: string
@@ -21,8 +22,11 @@ type Vacancy = {
 
 export default function VacanciesPage() {
     const router = useRouter()
+    const { showToast } = useToast()
     const [vacancies, setVacancies] = useState<Vacancy[]>([])
     const [loading, setLoading] = useState(true)
+    const [syncingAll, setSyncingAll] = useState(false)
+    const [importing, setImporting] = useState(false)
     const [currentPage, setCurrentPage] = useState(1)
     const [totalPages, setTotalPages] = useState(1)
 
@@ -46,6 +50,46 @@ export default function VacanciesPage() {
         }
     }
 
+    const handleSyncAll = async () => {
+        setSyncingAll(true)
+        try {
+            const res = await fetch('/api/avito/sync-all', { method: 'POST' })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.message || 'Ошибка синхронизации')
+            showToast(`Синхронизация завершена. Вакансий: ${data.vacanciesSynced}, новых откликов: ${data.newApplies}`, 'success')
+            router.refresh()
+            fetchVacancies(currentPage)
+        } catch (err) {
+            if (err instanceof Error) showToast(err.message, 'error')
+        } finally {
+            setSyncingAll(false)
+        }
+    }
+
+    const handleImport = async () => {
+        setImporting(true)
+        try {
+            const res = await fetch('/api/avito/import', { method: 'POST' })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.message || 'Ошибка импорта')
+
+            if (data.importedCount > 0) {
+                showToast(`Успешно импортировано ${data.importedCount} активных вакансий`, 'success')
+            } else if (data.alreadyExistsCount > 0) {
+                showToast(`Новых вакансий нет. Пропущено ${data.alreadyExistsCount} уже существующих`, 'success')
+            } else {
+                showToast(`У вас нет активных вакансий для импорта на Avito`, 'error')
+            }
+
+            router.refresh()
+            fetchVacancies(currentPage)
+        } catch (err) {
+            if (err instanceof Error) showToast(err.message, 'error')
+        } finally {
+            setImporting(false)
+        }
+    }
+
     return (
         <div className="space-y-6">
             <div className="sm:flex sm:items-center sm:justify-between">
@@ -55,7 +99,25 @@ export default function VacanciesPage() {
                         Список всех открытых и закрытых вакансий вашей организации.
                     </p>
                 </div>
-                <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+                <div className="mt-4 sm:ml-16 sm:mt-0 flex items-center gap-3 flex-none">
+                    <button
+                        type="button"
+                        onClick={handleImport}
+                        disabled={importing || syncingAll}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-orange-50 px-4 py-2.5 text-sm font-semibold text-orange-700 shadow-sm ring-1 ring-inset ring-orange-200 hover:bg-orange-100 transition-colors disabled:opacity-50"
+                    >
+                        <Import className={`w-4 h-4 ${importing ? 'animate-pulse' : ''}`} />
+                        {importing ? 'Загрузка...' : 'Импорт с Avito'}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleSyncAll}
+                        disabled={syncingAll || importing}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 transition-colors disabled:opacity-50"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${syncingAll ? 'animate-spin' : ''}`} />
+                        {syncingAll ? 'Синхронизация...' : 'Синх всех'}
+                    </button>
                     <button
                         type="button"
                         onClick={() => router.push("/dashboard/vacancies/new")}
@@ -150,15 +212,24 @@ export default function VacanciesPage() {
                                             </span>
                                         </td>
                                         <td className="whitespace-nowrap px-6 py-5">
-                                            {vacancy.avitoStatus === 'PUBLISHED' ? (
-                                                <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                                                    Авито #{vacancy.avitoId}
-                                                </span>
-                                            ) : vacancy.avitoStatus === 'ERROR' ? (
-                                                <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-red-50 text-red-700 border border-red-200">
-                                                    <span className="h-1.5 w-1.5 rounded-full bg-red-500"></span>
-                                                    Ошибка
+                                            {vacancy.avitoId ? (
+                                                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium border
+                                                    ${vacancy.avitoStatus === 'activated'
+                                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                        : vacancy.avitoStatus === 'blocked' || vacancy.avitoStatus === 'rejected'
+                                                            ? 'bg-red-50 text-red-700 border-red-200'
+                                                            : vacancy.avitoStatus === 'archived' || vacancy.avitoStatus === 'expired'
+                                                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                                                : 'bg-slate-50 text-slate-600 border-slate-200'
+                                                    }`}>
+                                                    <span className={`h-1.5 w-1.5 rounded-full
+                                                        ${vacancy.avitoStatus === 'activated' ? 'bg-emerald-500'
+                                                            : vacancy.avitoStatus === 'blocked' || vacancy.avitoStatus === 'rejected' ? 'bg-red-500'
+                                                                : vacancy.avitoStatus === 'archived' || vacancy.avitoStatus === 'expired' ? 'bg-amber-500'
+                                                                    : 'bg-slate-400'
+                                                        }`}>
+                                                    </span>
+                                                    {vacancy.avitoStatus || 'Опубликовано'} #{vacancy.avitoId}
                                                 </span>
                                             ) : (
                                                 <span className="text-xs text-slate-400">—</span>
