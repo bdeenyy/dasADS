@@ -160,9 +160,15 @@ export async function POST(req: Request) {
 
             // Extract applicant data
             const applicant = apply.applicant as Record<string, unknown> || {}
-            const applicantName = applicant.name as string || "Имя не указано"
-            const applicantPhone = applicant.phone as string | null || null
-            const applicantEmail = applicant.email as string | null || null
+            const applicantData = applicant.data as Record<string, unknown> || {}
+
+            // Name can be in applicant.data.name or applicant.data.full_name
+            const applicantName = (applicantData.name as string) || "Имя не указано"
+
+            const contacts = apply.contacts as Record<string, unknown> || {}
+            const phonesArray = contacts.phones as Array<{ value: string }> || []
+            let applicantPhone = phonesArray.length > 0 ? phonesArray[0].value : null
+            const applicantEmail = applicant.email as string | null || applicantData.email as string | null || null
 
             // Extract resume data
             const resume = apply.resume as Record<string, unknown> | null
@@ -183,6 +189,15 @@ export async function POST(req: Request) {
             const enrichedExperience = enrichedProps?.experience
                 ? (enrichedProps.experience as Record<string, unknown>)?.value as string | null
                 : null
+
+            // Phone might be in enriched properties if missing from contacts
+            if (!applicantPhone && enrichedProps?.phone) {
+                applicantPhone = (enrichedProps.phone as Record<string, unknown>)?.value as string | null
+            }
+            // Format phone to strip + if present
+            if (applicantPhone && applicantPhone.startsWith('+')) {
+                applicantPhone = applicantPhone.substring(1);
+            }
 
             // Determine First and Last names
             const nameParts = applicantName.split(" ")

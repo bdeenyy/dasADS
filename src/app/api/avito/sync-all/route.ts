@@ -157,9 +157,13 @@ export async function POST() {
                     }
 
                     const applicant = apply.applicant as Record<string, unknown> || {}
-                    const applicantName = applicant.name as string || "Имя не указано"
-                    const applicantPhone = applicant.phone as string | null || null
-                    const applicantEmail = applicant.email as string | null || null
+                    const applicantData = applicant.data as Record<string, unknown> || {}
+                    const applicantName = (applicantData.name as string) || "Имя не указано"
+
+                    const contacts = apply.contacts as Record<string, unknown> || {}
+                    const phonesArray = contacts.phones as Array<{ value: string }> || []
+                    let applicantPhone = phonesArray.length > 0 ? phonesArray[0].value : null
+                    const applicantEmail = applicant.email as string | null || applicantData.email as string | null || null
                     const resume = apply.resume as Record<string, unknown> | null
                     const resumeLink = resume?.url as string | null || null
                     const resumeId = resume?.id ? String(resume.id) : null
@@ -168,6 +172,14 @@ export async function POST() {
                     const enrichedCitizenship = enrichedProps?.citizenship ? (enrichedProps.citizenship as Record<string, unknown>)?.value as string | null : null
                     const enrichedGender = enrichedProps?.gender ? (enrichedProps.gender as Record<string, unknown>)?.value as string | null : null
                     const enrichedExperience = enrichedProps?.experience ? (enrichedProps.experience as Record<string, unknown>)?.value as string | null : null
+
+                    // Phone might be in enriched properties if missing from contacts
+                    if (!applicantPhone && enrichedProps?.phone) {
+                        applicantPhone = (enrichedProps.phone as Record<string, unknown>)?.value as string | null
+                    }
+                    if (applicantPhone && applicantPhone.startsWith('+')) {
+                        applicantPhone = applicantPhone.substring(1);
+                    }
 
                     const nameParts = applicantName.split(" ")
                     const firstName = nameParts[0]
