@@ -73,7 +73,7 @@ export class AvitoAPI {
     /**
      * Get applies for a specific vacancy
      */
-    async getApplies(vacancyId: number): Promise<unknown> {
+    async getApplies(vacancyId: string): Promise<unknown> {
         const token = await this.authenticate();
 
         const response = await fetch(`${this.baseUrl}/job/v1/vacancies/${vacancyId}/applies`, {
@@ -95,7 +95,7 @@ export class AvitoAPI {
     /**
      * Update an existing vacancy on Avito
      */
-    async updateVacancy(avitoId: number, vacancyData: unknown): Promise<unknown> {
+    async updateVacancy(avitoId: string, vacancyData: unknown): Promise<unknown> {
         const token = await this.authenticate();
 
         const response = await fetch(`${this.baseUrl}/job/v2/vacancies/${avitoId}`, {
@@ -116,9 +116,32 @@ export class AvitoAPI {
     }
 
     /**
+     * Get statuses for multiple published vacancies
+     */
+    async getVacancyStatuses(avitoIds: string[]): Promise<unknown> {
+        const token = await this.authenticate();
+
+        const response = await fetch(`${this.baseUrl}/job/v2/vacancies/statuses`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ ids: avitoIds })
+        });
+
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(`Failed to get vacancy statuses: ${error}`);
+        }
+
+        return response.json();
+    }
+
+    /**
      * Deactivate (remove) a vacancy from Avito
      */
-    async deactivateVacancy(avitoId: number): Promise<void> {
+    async deactivateVacancy(avitoId: string): Promise<void> {
         const token = await this.authenticate();
 
         const response = await fetch(`${this.baseUrl}/job/v2/vacancies/${avitoId}`, {

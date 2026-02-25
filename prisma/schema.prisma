@@ -77,7 +77,7 @@ model Vacancy {
   status         String    @default("DRAFT") // DRAFT, ACTIVE, CLOSED, ARCHIVED
   
   // Avito Integration
-  avitoId        Int?      @unique
+  avitoId        String?      @unique
   avitoStatus    String?   // Status on Avito
   avitoConfig    Json?     // Avito specific configuration, e.g. schedules, bonuses, etc.
 

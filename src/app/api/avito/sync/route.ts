@@ -32,8 +32,43 @@ export async function POST(req: Request) {
 
         const avitoClient = await createAvitoClient(session.user.organizationId)
 
+        let currentLocalStatus = vacancy.status;
+
+        // Fetch and sync vacancy status
+        try {
+            const statusesResponse = await avitoClient.getVacancyStatuses([vacancy.avitoId.toString()]) as Record<string, unknown>;
+            if (statusesResponse && statusesResponse.items && Array.isArray(statusesResponse.items)) {
+                type StatusItem = { id: string, vacancy?: { status?: string } };
+                const statusItem = statusesResponse.items.find((item: StatusItem) => item.id === String(vacancy.avitoId));
+                if (statusItem && statusItem.vacancy && statusItem.vacancy.status) {
+                    const avitoStatusLabel = statusItem.vacancy.status; // created, activated, archived, blocked, closed, expired, rejected, unblocked
+
+                    let newLocalStatus = currentLocalStatus;
+                    const closedAvitoStatuses = ["archived", "closed", "expired", "blocked", "rejected"];
+                    if (closedAvitoStatuses.includes(avitoStatusLabel) && currentLocalStatus !== "ARCHIVED" && currentLocalStatus !== "CLOSED") {
+                        newLocalStatus = "ARCHIVED";
+                    } else if (avitoStatusLabel === "activated" && currentLocalStatus === "DRAFT") {
+                        newLocalStatus = "ACTIVE";
+                    }
+
+                    // Always update avitoStatus, conditionally update local status
+                    await prisma.vacancy.update({
+                        where: { id: vacancy.id },
+                        data: {
+                            avitoStatus: avitoStatusLabel,
+                            ...(newLocalStatus !== currentLocalStatus ? { status: newLocalStatus } : {})
+                        }
+                    });
+                    currentLocalStatus = newLocalStatus;
+                }
+            }
+        } catch (err) {
+            console.error("Failed to sync vacancy status during general sync:", err);
+            // Non-fatal, proceed to fetch applies
+        }
+
         // Fetch applies from Avito
-        const avitoResponse = await avitoClient.getApplies(vacancy.avitoId) as unknown
+        const avitoResponse = await avitoClient.getApplies(vacancy.avitoId.toString()) as unknown
 
         const responseObj = avitoResponse as Record<string, unknown>
 

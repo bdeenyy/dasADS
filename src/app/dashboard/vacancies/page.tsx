@@ -105,13 +105,13 @@ export default function VacanciesPage() {
                             ) : (
                                 vacancies.map((vacancy) => (
                                     <tr key={vacancy.id} className="hover:bg-slate-50/50 transition-colors group">
-                                        <td className="whitespace-nowrap px-6 py-5">
+                                        <td className="px-6 py-5 max-w-[200px] sm:max-w-xs md:max-w-md">
                                             <div className="flex items-center gap-4">
                                                 <div className="h-10 w-10 flex-shrink-0 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-100 transition-colors">
                                                     <BriefcaseBusiness className="h-5 w-5" />
                                                 </div>
-                                                <div>
-                                                    <div className="font-medium text-slate-900 text-sm">
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="font-medium text-slate-900 text-sm truncate" title={vacancy.title}>
                                                         {vacancy.title}
                                                     </div>
                                                     <div className="text-xs text-slate-500 mt-1 flex items-center gap-1">

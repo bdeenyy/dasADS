@@ -1,7 +1,6 @@
 import prisma from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { NextResponse } from "next/server"
-import { Prisma } from "@prisma/client"
 
 import { createAvitoClient } from "@/lib/avito"
 
@@ -94,7 +93,8 @@ export async function POST(req: Request) {
             finalOwnerId = ownerId
         }
 
-        const data: Prisma.VacancyUncheckedCreateInput = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const data: any = {
             title,
             description,
             salaryMin: salaryMin ? parseInt(salaryMin) : null,
@@ -119,12 +119,14 @@ export async function POST(req: Request) {
                     { id: 'new', title, description, salaryMin, salaryMax, experience, employmentType, city },
                     avitoConfig as Record<string, string>
                 )
-                const avitoResponse = await avitoClient.publishVacancy(avitoPayload) as { id?: number };
+                const avitoResponse = await avitoClient.publishVacancy(avitoPayload) as { id?: string };
                 data.avitoId = avitoResponse.id || null
                 data.avitoStatus = "PUBLISHED"
             } catch (err: unknown) {
                 console.error("Failed to publish to Avito:", err)
-                data.avitoStatus = "ERROR"
+                // Do not swallow the error, return it so the frontend can display it
+                // We return 400 Bad Request because it's usually a validation error from Avito Mapper
+                return new NextResponse(err instanceof Error ? err.message : "Ошибка публикации на Авито", { status: 400 })
             }
         }
 

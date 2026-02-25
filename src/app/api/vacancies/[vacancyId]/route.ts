@@ -113,7 +113,7 @@ export async function PUT(
                 employmentType,
                 city,
                 skills: skills || [],
-                status: status || "DRAFT",
+                status: status || existingVacancy.status,
                 customerId,
                 ownerId: finalOwnerId,
                 avitoConfig: avitoConfig || null,
@@ -136,25 +136,48 @@ export async function PUT(
                     await avitoClient.updateVacancy(existingVacancy.avitoId, avitoPayload)
                     await prisma.vacancy.update({
                         where: { id: vacancyId },
-                        data: { avitoStatus: "PUBLISHED" }
+                        data: {
+                            avitoStatus: "PUBLISHED",
+                            ...(existingVacancy.status === "DRAFT" ? { status: "ACTIVE" } : {})
+                        }
                     })
                 } else {
                     // Create new listing on Avito
-                    const avitoResponse = await avitoClient.publishVacancy(avitoPayload) as { id?: number }
+                    const avitoResponse = await avitoClient.publishVacancy(avitoPayload) as { id?: string }
                     await prisma.vacancy.update({
                         where: { id: vacancyId },
                         data: {
                             avitoId: avitoResponse.id || null,
-                            avitoStatus: "PUBLISHED"
+                            avitoStatus: "PUBLISHED",
+                            ...(existingVacancy.status === "DRAFT" ? { status: "ACTIVE" } : {})
                         }
                     })
                 }
-            } catch (err) {
+            } catch (err: unknown) {
                 console.error("Failed to update on Avito:", err)
                 await prisma.vacancy.update({
                     where: { id: vacancyId },
                     data: { avitoStatus: "ERROR" }
                 })
+
+                // Return descriptive error so the client UI shows the validation failure
+                return new NextResponse(err instanceof Error ? err.message : "Ошибка публикации на Авито", { status: 400 })
+            }
+        }
+
+        // Handle Archiving/Closing: Deactivate on Avito if it was published
+        if (status && (status === "ARCHIVED" || status === "CLOSED") && existingVacancy.avitoId && existingVacancy.avitoStatus !== "ARCHIVED") {
+            try {
+                const { createAvitoClient } = await import("@/lib/avito")
+                const avitoClient = await createAvitoClient(session.user.organizationId)
+                await avitoClient.deactivateVacancy(existingVacancy.avitoId)
+
+                await prisma.vacancy.update({
+                    where: { id: vacancyId },
+                    data: { avitoStatus: "ARCHIVED" }
+                })
+            } catch (err) {
+                console.error("Failed to deactivate on Avito during status change:", err)
             }
         }
 

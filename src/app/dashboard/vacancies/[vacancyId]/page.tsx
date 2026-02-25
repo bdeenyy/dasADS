@@ -4,6 +4,7 @@ import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ToastProvider"
 import KanbanBoard from "@/components/KanbanBoard"
+import { AVITO_PROFESSIONS } from "@/lib/avito-professions"
 
 export default function VacancyForm({ params }: { params: Promise<{ vacancyId: string }> }) {
     const router = useRouter()
@@ -457,82 +458,98 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
                                 </select>
                             </div>
 
-                            {/* Avito Integration Section */}
-                            <div className="sm:col-span-6 border-t border-gray-200 pt-6 mt-6">
-                                <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Интеграция с Авито</h3>
-
-                                <div className="relative flex items-start mb-4">
-                                    <div className="flex h-6 items-center">
+                            {/* Avito Integration Section (Redesigned Card) */}
+                            <div className="sm:col-span-6 bg-slate-50 border border-slate-200 rounded-xl p-6 mt-2 relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-5 gap-4">
+                                    <div>
+                                        <h3 className="text-lg font-semibold leading-6 text-slate-900">Интеграция с Авито</h3>
+                                        <p className="text-sm text-slate-500 mt-1">Обязательные поля для публикации или обновления вакансии.</p>
+                                    </div>
+                                    <div className="flex items-center bg-white border border-slate-200 px-4 py-2.5 rounded-lg shadow-sm">
                                         <input
                                             id="publishToAvito"
                                             name="publishToAvito"
                                             type="checkbox"
                                             checked={formData.publishToAvito}
                                             onChange={(e) => setFormData({ ...formData, publishToAvito: e.target.checked })}
-                                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                                            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer"
                                         />
-                                    </div>
-                                    <div className="ml-3 text-sm leading-6">
-                                        <label htmlFor="publishToAvito" className="font-medium text-gray-900">
-                                            Опубликовать на Avito при сохранении
+                                        <label htmlFor="publishToAvito" className="ml-3 font-medium text-sm text-slate-900 cursor-pointer select-none">
+                                            Опубликовать при сохранении
                                         </label>
-                                        <p className="text-gray-500">Автоматически создать или обновить карточку вакансии на платформе Авито.</p>
                                     </div>
                                 </div>
 
-                                {formData.publishToAvito && (
-                                    <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-6 pl-7">
-                                        <div className="sm:col-span-4">
-                                            <label htmlFor="avitoAddress" className="block text-sm font-medium leading-6 text-gray-900">
-                                                Полный адрес для Авито (город, улица)
-                                            </label>
-                                            <div className="mt-2 text-xs text-gray-500 mb-2">Например: Москва, улица Ленина, 50</div>
+                                <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-6 border-t border-slate-200 pt-6">
+                                    {/* ADDRESS */}
+                                    <div className="sm:col-span-6">
+                                        <label htmlFor="avitoAddress" className="block text-sm font-medium leading-6 text-slate-900">
+                                            Полный адрес (город, улица) <span className="text-red-500">*</span>
+                                        </label>
+                                        <div className="mt-2">
                                             <input
                                                 type="text"
                                                 id="avitoAddress"
                                                 value={formData.avitoAddress}
                                                 onChange={(e) => setFormData({ ...formData, avitoAddress: e.target.value })}
-                                                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
-                                                placeholder="Адрес для соискателей..."
+                                                className="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
+                                                placeholder="Например: Москва, улица Ленина, 50"
                                             />
                                         </div>
+                                    </div>
 
-                                        {/* Required Avito Fields */}
-                                        <div className="sm:col-span-3">
-                                            <label htmlFor="avitoIndustry" className="block text-sm font-medium leading-6 text-gray-900">
-                                                Сфера деятельности <span className="text-red-500">*</span>
-                                            </label>
+                                    {/* INDUSTRY */}
+                                    <div className="sm:col-span-3">
+                                        <label htmlFor="avitoIndustry" className="block text-sm font-medium leading-6 text-slate-900">
+                                            Сфера деятельности <span className="text-red-500">*</span>
+                                        </label>
+                                        <div className="mt-2">
                                             <input
                                                 type="text"
                                                 id="avitoIndustry"
                                                 value={formData.avitoIndustry}
                                                 onChange={(e) => setFormData({ ...formData, avitoIndustry: e.target.value })}
-                                                className="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
+                                                className="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
                                                 placeholder="Например: IT, интернет, телеком"
                                             />
                                         </div>
-                                        <div className="sm:col-span-3">
-                                            <label htmlFor="avitoProfession" className="block text-sm font-medium leading-6 text-gray-900">
-                                                Профессия (Авито) <span className="text-red-500">*</span>
-                                            </label>
+                                    </div>
+
+                                    {/* PROFESSION */}
+                                    <div className="sm:col-span-3">
+                                        <label htmlFor="avitoProfession" className="block text-sm font-medium leading-6 text-slate-900">
+                                            Профессия (Авито) <span className="text-red-500">*</span>
+                                        </label>
+                                        <div className="mt-2">
                                             <input
                                                 type="text"
                                                 id="avitoProfession"
+                                                list="avito-professions-list"
                                                 value={formData.avitoProfession}
                                                 onChange={(e) => setFormData({ ...formData, avitoProfession: e.target.value })}
-                                                className="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
-                                                placeholder="Например: Программист"
+                                                className="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
+                                                placeholder="Начните вводить профессию..."
                                             />
+                                            <datalist id="avito-professions-list">
+                                                {AVITO_PROFESSIONS.map((prof) => (
+                                                    <option key={prof.id} value={prof.name} />
+                                                ))}
+                                            </datalist>
                                         </div>
-                                        <div className="sm:col-span-3">
-                                            <label htmlFor="avitoExperience" className="block text-sm font-medium leading-6 text-gray-900">
-                                                Опыт работы (Авито) <span className="text-red-500">*</span>
-                                            </label>
+                                    </div>
+
+                                    {/* EXPERIENCE */}
+                                    <div className="sm:col-span-3">
+                                        <label htmlFor="avitoExperience" className="block text-sm font-medium leading-6 text-slate-900">
+                                            Опыт работы (Авито) <span className="text-red-500">*</span>
+                                        </label>
+                                        <div className="mt-2">
                                             <select
                                                 id="avitoExperience"
                                                 value={formData.avitoExperience}
                                                 onChange={(e) => setFormData({ ...formData, avitoExperience: e.target.value })}
-                                                className="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
+                                                className="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
                                             >
                                                 <option value="">— Выберите —</option>
                                                 <option value="Без опыта">Без опыта</option>
@@ -542,15 +559,19 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
                                                 <option value="Более 10 лет">Более 10 лет</option>
                                             </select>
                                         </div>
-                                        <div className="sm:col-span-3">
-                                            <label htmlFor="avitoEmploymentType" className="block text-sm font-medium leading-6 text-gray-900">
-                                                Тип занятости (Авито) <span className="text-red-500">*</span>
-                                            </label>
+                                    </div>
+
+                                    {/* EMPLOYMENT TYPE */}
+                                    <div className="sm:col-span-3">
+                                        <label htmlFor="avitoEmploymentType" className="block text-sm font-medium leading-6 text-slate-900">
+                                            Тип занятости (Авито) <span className="text-red-500">*</span>
+                                        </label>
+                                        <div className="mt-2">
                                             <select
                                                 id="avitoEmploymentType"
                                                 value={formData.avitoEmploymentType}
                                                 onChange={(e) => setFormData({ ...formData, avitoEmploymentType: e.target.value })}
-                                                className="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
+                                                className="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
                                             >
                                                 <option value="">— Выберите —</option>
                                                 <option value="Полная">Полная</option>
@@ -559,74 +580,72 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
                                                 <option value="Стажировка">Стажировка</option>
                                             </select>
                                         </div>
+                                    </div>
 
-                                        <div className="sm:col-span-2">
-                                            <label htmlFor="avitoContactMethod" className="block text-sm font-medium leading-6 text-gray-900">
-                                                Способ связи
-                                            </label>
-                                            <div className="mt-2 text-xs text-transparent select-none mb-2">.</div>
+                                    {/* CONTACT METHOD */}
+                                    <div className="sm:col-span-3">
+                                        <label htmlFor="avitoContactMethod" className="block text-sm font-medium leading-6 text-slate-900">
+                                            Способ связи
+                                        </label>
+                                        <div className="mt-2">
                                             <select
                                                 id="avitoContactMethod"
                                                 value={formData.avitoContactMethod}
                                                 onChange={(e) => setFormData({ ...formData, avitoContactMethod: e.target.value })}
-                                                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
+                                                className="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
                                             >
                                                 <option value="В сообщениях">Только сообщения</option>
                                                 <option value="По телефону">Только звонки</option>
                                                 <option value="По телефону и в сообщениях">Сообщения и звонки</option>
                                             </select>
                                         </div>
+                                    </div>
 
-                                        <div className="sm:col-span-3">
-                                            <label htmlFor="avitoManagerName" className="block text-sm font-medium leading-6 text-gray-900">
-                                                Имя менеджера
-                                            </label>
+                                    {/* MANAGER NAME */}
+                                    <div className="sm:col-span-3">
+                                        <label htmlFor="avitoManagerName" className="block text-sm font-medium leading-6 text-slate-900">
+                                            Имя менеджера
+                                        </label>
+                                        <div className="mt-2">
                                             <input
                                                 type="text"
                                                 id="avitoManagerName"
                                                 value={formData.avitoManagerName}
                                                 onChange={(e) => setFormData({ ...formData, avitoManagerName: e.target.value })}
-                                                className="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
+                                                className="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
                                                 placeholder="Например: Анастасия"
                                             />
                                         </div>
-                                        <div className="sm:col-span-3">
-                                            <label htmlFor="avitoContactPhone" className="block text-sm font-medium leading-6 text-gray-900">
-                                                Контактный телефон
-                                            </label>
+                                    </div>
+
+                                    {/* PHONE */}
+                                    <div className="sm:col-span-3">
+                                        <label htmlFor="avitoContactPhone" className="block text-sm font-medium leading-6 text-slate-900">
+                                            Контактный телефон
+                                        </label>
+                                        <div className="mt-2">
                                             <input
                                                 type="text"
                                                 id="avitoContactPhone"
                                                 value={formData.avitoContactPhone}
                                                 onChange={(e) => setFormData({ ...formData, avitoContactPhone: e.target.value })}
-                                                className="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
+                                                className="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
                                                 placeholder="Например: 79001234567"
                                             />
                                         </div>
+                                    </div>
 
-                                        <div className="sm:col-span-3">
-                                            <label htmlFor="avitoImageUrl" className="block text-sm font-medium leading-6 text-gray-900">
-                                                Ссылка на изображение (Обложка)
-                                            </label>
-                                            <input
-                                                type="url"
-                                                id="avitoImageUrl"
-                                                value={formData.avitoImageUrl}
-                                                onChange={(e) => setFormData({ ...formData, avitoImageUrl: e.target.value })}
-                                                className="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
-                                                placeholder="https://..."
-                                            />
-                                        </div>
-
-                                        <div className="sm:col-span-3">
-                                            <label htmlFor="avitoJobType" className="block text-sm font-medium leading-6 text-gray-900">
-                                                График работы (Авито)
-                                            </label>
+                                    {/* JOB TYPE */}
+                                    <div className="sm:col-span-3">
+                                        <label htmlFor="avitoJobType" className="block text-sm font-medium leading-6 text-slate-900">
+                                            График работы (Авито)
+                                        </label>
+                                        <div className="mt-2">
                                             <select
                                                 id="avitoJobType"
                                                 value={formData.avitoJobType}
                                                 onChange={(e) => setFormData({ ...formData, avitoJobType: e.target.value })}
-                                                className="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
+                                                className="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
                                             >
                                                 <option value="Полный день">Полный день</option>
                                                 <option value="Сменный график">Сменный график</option>
@@ -636,9 +655,28 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
                                                 <option value="Свободный график">Свободный график</option>
                                             </select>
                                         </div>
-
                                     </div>
-                                )}
+
+                                    {/* IMAGE URL */}
+                                    <div className="sm:col-span-6">
+                                        <label htmlFor="avitoImageUrl" className="block text-sm font-medium leading-6 text-slate-900">
+                                            Ссылка на обложку вакансии (URL)
+                                        </label>
+                                        <div className="mt-2 flex shadow-sm rounded-md">
+                                            <span className="inline-flex items-center rounded-l-md border border-r-0 border-slate-300 px-3 text-slate-500 sm:text-sm bg-slate-50">
+                                                https://
+                                            </span>
+                                            <input
+                                                type="url"
+                                                id="avitoImageUrl"
+                                                value={formData.avitoImageUrl}
+                                                onChange={(e) => setFormData({ ...formData, avitoImageUrl: e.target.value })}
+                                                className="block w-full min-w-0 flex-1 rounded-none rounded-r-md border-0 py-1.5 text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
+                                                placeholder="example.com/image.jpg"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="sm:col-span-6">
