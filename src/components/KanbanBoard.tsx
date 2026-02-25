@@ -187,10 +187,10 @@ export default function KanbanBoard({ vacancyId }: { vacancyId: string }) {
                                                 </div>
                                                 <div>
                                                     <h4 className="font-medium text-slate-900 text-sm">
-                                                        {app.candidate.firstName} {app.candidate.lastName}
+                                                        {app.candidate?.firstName || "Без имени"} {app.candidate?.lastName || ""}
                                                     </h4>
                                                     <p className="text-xs text-slate-500 mt-0.5 truncate max-w-[150px]">
-                                                        {app.candidate.email || app.candidate.phone || "Нет контактов"}
+                                                        {app.candidate?.email || app.candidate?.phone || "Нет контактов"}
                                                     </p>
                                                 </div>
                                             </div>

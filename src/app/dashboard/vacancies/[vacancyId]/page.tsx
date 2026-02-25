@@ -52,9 +52,10 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
         const fetchData = async () => {
             try {
                 // Fetch Customers for select dropdown
-                const custRes = await fetch('/api/customers')
+                const custRes = await fetch('/api/customers?limit=100')
                 if (custRes.ok) {
-                    const custData = await custRes.json()
+                    const custJson = await custRes.json()
+                    const custData = Array.isArray(custJson) ? custJson : (custJson.data || [])
                     setCustomers(custData)
                     if (isNew && custData.length > 0) {
                         setFormData(prev => ({ ...prev, customerId: custData[0].id }))
@@ -63,9 +64,10 @@ export default function VacancyForm({ params }: { params: Promise<{ vacancyId: s
 
                 // Try fetching users (will fail with 401 if role is RECRUITER, we just ignore that)
                 try {
-                    const usersRes = await fetch('/api/users')
+                    const usersRes = await fetch('/api/users?limit=100')
                     if (usersRes.ok) {
-                        const usersData = await usersRes.json()
+                        const usersJson = await usersRes.json()
+                        const usersData = Array.isArray(usersJson) ? usersJson : (usersJson.data || [])
                         setUsers(usersData)
                         setCurrentUserRole("MASTER_OR_MANAGER")
                     } else {

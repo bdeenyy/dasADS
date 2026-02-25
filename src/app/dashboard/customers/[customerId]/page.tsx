@@ -25,10 +25,11 @@ export default function CustomerForm({ params }: { params: Promise<{ customerId:
         if (!isNew) {
             const fetchCustomer = async () => {
                 try {
-                    const res = await fetch(`/api/customers`)
+                    const res = await fetch(`/api/customers?limit=100`)
                     if (res.ok) {
-                        const data = await res.json()
-                        const current = data.find((c: { id: string }) => c.id === customerId)
+                        const json = await res.json()
+                        const customersArray = Array.isArray(json) ? json : (json.data || [])
+                        const current = customersArray.find((c: { id: string }) => c.id === customerId)
                         if (current) {
                             setFormData({
                                 name: current.name || "",
