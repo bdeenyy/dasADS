@@ -5,7 +5,7 @@ import { createAvitoClient } from "@/lib/avito"
 
 // Avito status → local action mapping
 const AVITO_STATUS_MAP: Record<string, {
-    localStatus: string;
+    localStatus: 'DRAFT' | 'ACTIVE' | 'ARCHIVED' | 'CLOSED';
     activityType: string;
     message: string;
 }> = {
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
                             where: { id: vacancy.id },
                             data: {
                                 avitoStatus: avitoStatusLabel,
-                                ...(localStatusChanged ? { status: mapping.localStatus as any } : {}),
+                                ...(localStatusChanged ? { status: mapping.localStatus } : {}),
                             }
                         });
 

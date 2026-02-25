@@ -206,7 +206,7 @@ export class AvitoAPI {
      */
     async getActiveItemIds(): Promise<string[]> {
         const token = await this.authenticate();
-        let allIds: string[] = [];
+        const allIds: string[] = [];
         let page = 1;
         const perPage = 100;
 
@@ -241,7 +241,7 @@ export class AvitoAPI {
      */
     async getActiveItems(): Promise<Array<{ id: number, title: string, url: string }>> {
         const token = await this.authenticate();
-        let allItems: Array<{ id: number, title: string, url: string }> = [];
+        const allItems: Array<{ id: number, title: string, url: string }> = [];
         let page = 1;
         const perPage = 100;
 
@@ -275,7 +275,7 @@ export class AvitoAPI {
      */
     async getOldItemIds(): Promise<string[]> {
         const token = await this.authenticate();
-        let allIds: string[] = [];
+        const allIds: string[] = [];
         let page = 1;
         const perPage = 100;
 
@@ -354,7 +354,7 @@ export class AvitoAPI {
     async getVacancies(): Promise<{ vacancies: unknown[] }> {
         const token = await this.authenticate();
 
-        let allVacancies: unknown[] = [];
+        const allVacancies: unknown[] = [];
         let page = 1;
         const perPage = 100; // max allowed
 
@@ -372,7 +372,7 @@ export class AvitoAPI {
                 throw new Error(`Failed to get vacancies: ${error}`);
             }
 
-            const data = await response.json() as any;
+            const data = await response.json() as { vacancies?: unknown[], items?: unknown[] };
 
             // Extract the array of vacancies
             const items = data.vacancies || data.items || (Array.isArray(data) ? data : []);
@@ -395,7 +395,7 @@ export class AvitoAPI {
      * Get a specific vacancy by its ID to retrieve all its fields (description, salary, etc).
      * GET /job/v2/vacancies/{id}
      */
-    async getVacancyById(avitoId: string): Promise<any> {
+    async getVacancyById(avitoId: string): Promise<unknown> {
         const token = await this.authenticate();
 
         const response = await fetch(`${this.baseUrl}/job/v2/vacancies/${avitoId}`, {

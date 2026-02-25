@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth"
 import { NextResponse } from "next/server"
 import { createAvitoClient } from "@/lib/avito"
 
-export async function POST(req: Request) {
+export async function POST() {
     const session = await auth()
     if (!session?.user) {
         return new NextResponse("Unauthorized", { status: 401 })
@@ -59,48 +59,46 @@ export async function POST(req: Request) {
                 }
 
                 // Fetch full vacancy details
-                let fullVacancy: any = null;
+                let fullVacancy: unknown = null;
                 try {
                     fullVacancy = await avitoClient.getVacancyById(avitoId);
                 } catch (e) {
                     console.error(`[AVITO_IMPORT] Failed to fetch full details for vacancy ${avitoId}`, e);
                 }
 
+                const fv = fullVacancy as Record<string, unknown> | null;
+
                 // Extract city from address string if possible
                 let city = item.address ? item.address.split(',')[0].trim() : "Не указан";
-                if (fullVacancy?.addressDetails?.city) {
-                    city = fullVacancy.addressDetails.city;
+                const addressDetails = fv?.addressDetails as Record<string, unknown> | undefined;
+                if (addressDetails?.city) {
+                    city = addressDetails.city as string;
                 }
 
                 // Parse salary
                 let salaryMin = null;
                 let salaryMax = null;
-                if (fullVacancy?.params?.salary) {
-                    if (typeof fullVacancy.params.salary === 'object') {
-                        salaryMin = fullVacancy.params.salary.from || null;
-                        salaryMax = fullVacancy.params.salary.to || null;
-                    } else if (typeof fullVacancy.params.salary === 'number' || typeof fullVacancy.params.salary === 'string') {
-                        salaryMin = Number(fullVacancy.params.salary);
-                    }
-                } else if (fullVacancy?.salary) {
-                    if (typeof fullVacancy.salary === 'object') {
-                        salaryMin = fullVacancy.salary.from || null;
-                        salaryMax = fullVacancy.salary.to || null;
-                    } else if (typeof fullVacancy.salary === 'number' || typeof fullVacancy.salary === 'string') {
-                        salaryMin = Number(fullVacancy.salary);
-                    }
+                const params = fv?.params as Record<string, unknown> | undefined;
+                const fvSalary = (params?.salary || fv?.salary); // Handle as unknown
+
+                if (fvSalary && typeof fvSalary === 'object') {
+                    const s = fvSalary as Record<string, unknown>;
+                    salaryMin = (s.from as number) || null;
+                    salaryMax = (s.to as number) || null;
+                } else if (typeof fvSalary === 'number' || typeof fvSalary === 'string') {
+                    salaryMin = Number(fvSalary);
                 }
 
                 // Map Avito params to local fields
-                const experience = fullVacancy?.params?.experience || "Без опыта";
-                const workFormat = fullVacancy?.params?.work_format || "В офисе";
-                const employmentType = fullVacancy?.params?.employment || "Полная занятость";
-                const description = fullVacancy?.description || "";
+                const experience = (params?.experience as string) || "Без опыта";
+                const workFormat = (params?.work_format as string) || "В офисе";
+                const employmentType = (params?.employment as string) || "Полная занятость";
+                const description = (fv?.description as string) || "";
 
                 // If it doesn't exist, create it locally
                 await prisma.vacancy.create({
                     data: {
-                        title: fullVacancy?.title || item.title || "Импортированная вакансия без названия",
+                        title: (fv?.title as string) || item.title || "Импортированная вакансия без названия",
                         description: description,
                         salaryMin: salaryMin,
                         salaryMax: salaryMax,

@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth"
 import { NextResponse } from "next/server"
 import { createAvitoClient } from "@/lib/avito"
 
-const AVITO_STATUS_MAP: Record<string, { localStatus: string; activityType: string; message: string }> = {
+const AVITO_STATUS_MAP: Record<string, { localStatus: 'DRAFT' | 'ACTIVE' | 'ARCHIVED' | 'CLOSED'; activityType: string; message: string }> = {
     created: { localStatus: "DRAFT", activityType: "AVITO_STATUS", message: "Вакансия создана на Avito (черновик)" },
     activated: { localStatus: "ACTIVE", activityType: "AVITO_STATUS", message: "Вакансия активирована на Avito" },
     archived: { localStatus: "ARCHIVED", activityType: "AVITO_STATUS", message: "Вакансия снята с публикации на Avito" },
@@ -81,7 +81,7 @@ export async function POST() {
                     where: { id: vacancy.id },
                     data: {
                         avitoStatus: avitoStatusLabel,
-                        ...(localStatusChanged ? { status: mapping.localStatus as any } : {}),
+                        ...(localStatusChanged ? { status: mapping.localStatus } : {}),
                     }
                 });
 
